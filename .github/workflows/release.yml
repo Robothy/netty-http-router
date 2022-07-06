@@ -30,7 +30,7 @@ jobs:
           echo ''
           echo ::set-output name=PUBLISH_VERSION::$(echo $PUBLISH_VERSION)
           echo publishing version $PUBLISH_VERSION
-          ./gradlew publish -PGITHUB_TOKEN=${{secrets.GITHUB_PACKAGES_TOKEN}}
+          ./gradlew publish -PGITHUB_TOKEN=${{secrets.PACKAGES_TOKEN}}
           export NEXT_VERSION=`echo $PUBLISH_VERSION | awk '{print substr($1, 0, match($1, /\.[0-9]*$/)) substr($1, match($1, /\.[0-9]*$/)+1)+1"-SNAPSHOT"}'`
           echo next version $NEXT_VERSION
           awk -F '=' -v next_version="$NEXT_VERSION" '{ if ($1 == "version") print $1"="next_version; else print $1"="$2}' gradle.properties > gradle.properties.tmp
