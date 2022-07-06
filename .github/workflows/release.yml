@@ -1,7 +1,7 @@
 name: Release
 on:
   push:
-    branches: ['main']
+    branches: [ 'main' ]
 
 jobs:
   publish-to-maven:
@@ -9,28 +9,28 @@ jobs:
     env:
       GITHUB_USERNAME: Robothy
 
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Release
-      run: |
-        pwd
-        ls -l
-        git log --pretty=format:"%H - %an, %aI : %s" -5
-        set PUBLISH_VERSION=`awk -F '=' '$1=="version" {print substr($2, 0, index($2, "-")-1)}' gradle.properties`
-        echo $PUBLISH_VERSION
-        set NEXT_VERSION=`echo $PUBLISH_VERSION | awk '{print substr($1, 0, match($1, /\.[0-9]*$/)) substr($1, match($1, /\.[0-9]*$/)+1)+1"-SNAPSHOT"}'`
-        echo $NEXT_VERSION
-        awk -F '=' -v next_version="$NEXT_VERSION" '{ if ($1 == "version") print $1"="next_version; else print $1"="$2}' gradle.properties > gradle.properties.tmp
-        mv gradle.properties.tmp gradle.properties
-        cat gradle.properties
+      - name: Release
+        run: |
+          pwd
+          ls -l
+          git log --pretty=format:"%H - %an, %aI : %s" -5
+          set PUBLISH_VERSION=`awk -F '=' '$1=="version" {print substr($2, 0, index($2, "-")-1)}' gradle.properties`
+          echo $PUBLISH_VERSION
+          set NEXT_VERSION=`echo $PUBLISH_VERSION | awk '{print substr($1, 0, match($1, /\.[0-9]*$/)) substr($1, match($1, /\.[0-9]*$/)+1)+1"-SNAPSHOT"}'`
+          echo $NEXT_VERSION
+          awk -F '=' -v next_version="$NEXT_VERSION" '{ if ($1 == "version") print $1"="next_version; else print $1"="$2}' gradle.properties > gradle.properties.tmp
+          mv gradle.properties.tmp gradle.properties
+          cat gradle.properties
 
-    - name: Commit next version
-      uses: EndBug/add-and-commit@v9
-      with:
-        add: './gradle.properties'
-        author_name: GitHub Actions
-        author_email: bot@robothy.com
-        message: ${{env.PUBLISH_VERSION}} released.
-        push: true
+      - name: Commit next version
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: './gradle.properties'
+          author_name: GitHub Actions
+          author_email: bot@robothy.com
+          message: ${{env.PUBLISH_VERSION}} released.
+          push: true
