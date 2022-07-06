@@ -13,7 +13,9 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -22,20 +24,28 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class HttpServerInitializerTest {
 
   @Test
   void test() throws URISyntaxException, IOException, InterruptedException {
-    HttpServerInitializer serverInitializer = new HttpServerInitializer(new DefaultEventExecutorGroup(4), Router.router()
+
+    Router router = Router.router()
         .route(HttpMethod.GET, "/", ((request, response) -> response
             .status(HttpResponseStatus.OK)
             .write("Hello World")))
-        .staticResource(Paths.get("src")));
+        .staticResource(Paths.get("src"));
 
+    DefaultEventExecutorGroup executor = new DefaultEventExecutorGroup(2);
+    HttpServerInitializer serverInitializer = new HttpServerInitializer(executor, router);
 
     EventLoopGroup parentGroup = new NioEventLoopGroup(1);
     EventLoopGroup childGroup = new NioEventLoopGroup(1);
@@ -61,18 +71,51 @@ class HttpServerInitializerTest {
     assertEquals("Hello World", response.body());
 
 
-    String staticResourcePath = "/test/java/com/robothy/netty/initializer/HttpServerInitializerTest.java";
-    HttpResponse<String> staticResourceResp = HttpClient.newHttpClient()
+    Path staticResourceDirectory = Files.createTempDirectory("static-resource");
+    router.staticResource(staticResourceDirectory);
+
+    // Test get small static file.
+    Path smallFilePath = Paths.get(staticResourceDirectory.toString(), "/small.txt");
+    Files.writeString(smallFilePath, "Hello World");
+    HttpResponse<String> smallResourceResp = HttpClient.newHttpClient()
         .send(requestBuilder.GET()
-            .uri(new URI("http://localhost:8080" + staticResourcePath))
+            .uri(new URI("http://localhost:8080/small.txt"))
             .build(), responseInfo -> HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8));
-    assertEquals(200, staticResourceResp.statusCode());
-    HttpHeaders headers = staticResourceResp.headers();
+    assertEquals(200, smallResourceResp.statusCode());
+    HttpHeaders headers = smallResourceResp.headers();
     Optional<String> contentLenOptional = headers.firstValue("Content-Length");
     assertTrue(contentLenOptional.isPresent());
-    assertEquals(String.valueOf(Files.size(Paths.get("src", staticResourcePath))), contentLenOptional.get());
+    assertEquals(String.valueOf("Hello World".length()), contentLenOptional.get());
+    assertEquals("Hello World", smallResourceResp.body());
 
+    // Test get large static file.
+    int size = 20 * 1024 * 1024; // 20M
+    Random random = new Random(6);
+
+    Path largeFilePath = Paths.get(staticResourceDirectory.toString(), "/large.dat");
+    try (BufferedWriter bufferedWriter = Files.newBufferedWriter(largeFilePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+      for (int i = 0; i < size; i += 1024) {
+        char[] chars = new char[1024];
+        Arrays.fill(chars, (char) ('a' + random.nextInt(26)));
+        bufferedWriter.write(chars);
+      }
+      bufferedWriter.flush();
+    }
+
+    HttpResponse<InputStream> largeResourceResp = HttpClient.newHttpClient()
+        .send(requestBuilder
+                .GET()
+                .uri(new URI("http://localhost:8080/large.dat"))
+                .build(),
+            responseInfo -> HttpResponse.BodySubscribers.ofInputStream());
+    OptionalLong optionalSize = largeResourceResp.headers().firstValueAsLong("Content-Length");
+    assertTrue(optionalSize.isPresent());
+    assertEquals(optionalSize.getAsLong(), size);
+    
     serverSocketChannel.close().sync();
+    parentGroup.shutdownGracefully();
+    childGroup.shutdownGracefully();
+    executor.shutdownGracefully();
   }
 
 }

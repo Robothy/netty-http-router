@@ -266,6 +266,7 @@ final class RouterImpl implements Router {
           while( size != (readLen += fileChannel.read(buf, readLen)) ) {
             buf.compact();
           }
+          buf.flip();
           response.write(Unpooled.wrappedBuffer(buf));
         }
 
