@@ -20,6 +20,7 @@ jobs:
           git log --pretty=format:"%H - %an, %aI : %s" -5
           export PUBLISH_VERSION=`awk -F '=' '$1=="version" {print substr($2, 0, index($2, "-")-1)}' gradle.properties`
           echo ''
+          echo '::set-output name=PUBLISH_VERSION::$PUBLISH_VERSION'
           echo publishing version $PUBLISH_VERSION
           export NEXT_VERSION=`echo $PUBLISH_VERSION | awk '{print substr($1, 0, match($1, /\.[0-9]*$/)) substr($1, match($1, /\.[0-9]*$/)+1)+1"-SNAPSHOT"}'`
           echo next version $NEXT_VERSION
@@ -33,5 +34,5 @@ jobs:
           add: './gradle.properties'
           author_name: GitHub Actions
           author_email: bot@robothy.com
-          message: ${{env.PUBLISH_VERSION}} released.
+          message: ${{core.getInput('PUBLISH_VERSION')}} released.
           push: true
