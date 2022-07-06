@@ -3,13 +3,11 @@ package com.robothy.netty.router;
 import com.robothy.netty.http.HttpRequest;
 import com.robothy.netty.http.HttpRequestHandler;
 import com.robothy.netty.http.HttpResponse;
-import com.robothy.netty.router.utils.MimeTypeUtils;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.buffer.UnpooledDirectByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -238,6 +236,8 @@ final class RouterImpl implements Router {
 
   private static class StaticResourceRequestHandler implements HttpRequestHandler {
 
+    static int MAP_THRESHOLD = 10 * 1024 * 1024; // 10MB
+
     private final Path staticResourceDirectory;
 
     StaticResourceRequestHandler(Path staticResourcePath) {
@@ -252,11 +252,23 @@ final class RouterImpl implements Router {
 
       try (FileChannel fileChannel = FileChannel.open(absPath, StandardOpenOption.READ)) {
         long contentLength = fileChannel.size();
-        MappedByteBuffer byteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, contentLength);
         response.status(HttpResponseStatus.OK)
             .putHeader(HttpHeaderNames.CONTENT_LENGTH.toString(), contentLength)
-            .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), Files.probeContentType(absPath))
-            .write(Unpooled.wrappedBuffer(byteBuffer));
+            .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), Files.probeContentType(absPath));
+
+        if (contentLength > MAP_THRESHOLD) {
+          MappedByteBuffer byteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, contentLength);
+          response.write(Unpooled.wrappedBuffer(byteBuffer));
+        } else {
+          int size = (int) contentLength;
+          ByteBuffer buf = ByteBuffer.allocate(size);
+          int readLen = 0;
+          while( size != (readLen += fileChannel.read(buf, readLen)) ) {
+            buf.compact();
+          }
+          response.write(Unpooled.wrappedBuffer(buf));
+        }
+
       }
 
     }
