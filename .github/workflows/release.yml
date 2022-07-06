@@ -13,20 +13,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-#    - name: Setup JDK 15
-#      uses: actions/setup-java@v3
-#        with:
-#          java-version: '15'
-#          distribution: 'temurin'
     - name: Release
       run: |
         pwd
         ls -l
         git log --pretty=format:"%H - %an, %aI : %s" -5
-#        chmod +x gradlew
         set PUBLISH_VERSION=`awk -F '=' '$1=="version" {print substr($2, 0, index($2, "-")-1)}' gradle.properties`
         echo $PUBLISH_VERSION
-#        ./gradlew publish -PGITHUB_TOKEN=${{secrets.GITHUB_PACKAGES_TOKEN}}
         set NEXT_VERSION=`echo $PUBLISH_VERSION | awk '{print substr($1, 0, match($1, /\.[0-9]*$/)) substr($1, match($1, /\.[0-9]*$/)+1)+1"-SNAPSHOT"}'`
         echo $NEXT_VERSION
         awk -F '=' -v next_version="$NEXT_VERSION" '{ if ($1 == "version") print $1"="next_version; else print $1"="$2}' gradle.properties > gradle.properties.tmp
