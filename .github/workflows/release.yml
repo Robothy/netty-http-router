@@ -19,9 +19,9 @@ jobs:
           ls -l
           git log --pretty=format:"%H - %an, %aI : %s" -5
           PUBLISH_VERSION=`awk -F '=' '$1=="version" {print substr($2, 0, index($2, "-")-1)}' gradle.properties`
-          echo $PUBLISH_VERSION
+          echo publishing version $PUBLISH_VERSION
           NEXT_VERSION=`echo $PUBLISH_VERSION | awk '{print substr($1, 0, match($1, /\.[0-9]*$/)) substr($1, match($1, /\.[0-9]*$/)+1)+1"-SNAPSHOT"}'`
-          echo $NEXT_VERSION
+          echo next version $NEXT_VERSION
           awk -F '=' -v next_version="$NEXT_VERSION" '{ if ($1 == "version") print $1"="next_version; else print $1"="$2}' gradle.properties > gradle.properties.tmp
           mv gradle.properties.tmp gradle.properties
           cat gradle.properties
