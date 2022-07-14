@@ -13,6 +13,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -39,9 +41,12 @@ public class HttpMessageHandler extends SimpleChannelInboundHandler<HttpRequest>
         handler.handle(request, response);
       } catch (Throwable e) {
         log.error("Failed to handle " + request.getMethod() + " " + request.getPath(), e);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream printStream = new PrintStream(out);
+        e.printStackTrace(printStream);
         response = new HttpResponse()
-            .write("Internal Server Error.")
-            .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), HttpHeaderValues.TEXT_HTML)
+            .write(out.toString())
+            .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), HttpHeaderValues.TEXT_PLAIN)
             .status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
       }
     }

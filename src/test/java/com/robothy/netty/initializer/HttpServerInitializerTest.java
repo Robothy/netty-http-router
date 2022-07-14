@@ -14,14 +14,17 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,6 +34,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class HttpServerInitializerTest {
@@ -111,7 +115,22 @@ class HttpServerInitializerTest {
     OptionalLong optionalSize = largeResourceResp.headers().firstValueAsLong("Content-Length");
     assertTrue(optionalSize.isPresent());
     assertEquals(optionalSize.getAsLong(), size);
-    
+
+
+    // Test HttpRequestHandler throws unhandled exception.
+    AtomicReference<RuntimeException> exceptionHolder = new AtomicReference<>();
+    router.route(HttpMethod.GET,"/test/exception", (req, resp) -> {
+      exceptionHolder.set(new RuntimeException("Unhandled."));
+      throw exceptionHolder.get();
+    });
+
+    HttpResponse<String> exceptionResponse = HttpClient.newHttpClient()
+        .send(requestBuilder.GET().uri(new URI("http://localhost:8080/test/exception")).build(),
+            responseInfo -> HttpResponse.BodySubscribers.ofString(Charset.defaultCharset()));
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    exceptionHolder.get().printStackTrace(new PrintStream(out));
+    assertEquals("" + out, exceptionResponse.body());
+
     serverSocketChannel.close().sync();
     parentGroup.shutdownGracefully();
     childGroup.shutdownGracefully();

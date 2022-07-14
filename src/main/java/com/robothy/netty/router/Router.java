@@ -10,7 +10,7 @@ import java.nio.file.Path;
  * A Router is a S3RequestHandler container. The route path must starts with a '/'.
  *
  * "/", "//", "" matches route("/")
- * "/a" matches route("/a") firstly, then match "/{param}"
+ * "/a" matches route("/a") firstly, then match "/{param}" and pass 'a' as value of `param`.
  *
  */
 public interface Router {
@@ -31,6 +31,11 @@ public interface Router {
     return route(new Route(method, path, handler));
   }
 
+  /**
+   * Set resource not found handler.
+   *
+   * @return this
+   */
   Router notFound(HttpRequestHandler handler);
 
   /**
