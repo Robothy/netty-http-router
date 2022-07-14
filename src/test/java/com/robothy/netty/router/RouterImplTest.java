@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.robothy.netty.http.HttpRequest;
 import com.robothy.netty.http.HttpRequestHandler;
 import io.netty.handler.codec.http.HttpMethod;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -94,7 +95,27 @@ class RouterImplTest {
     assertEquals(notFoundHandler, router.match(requestBuilder
         .method(HttpMethod.POST)
         .path("/test/java/com/robothy/netty/router/RouterImplTest.java").build()));
-
-
   }
+
+  @Test
+  void testExceptionHandler() {
+    RouterImpl router = new RouterImpl();
+    assertNotNull(router.findExceptionHandler(RuntimeException.class));
+    // Both found the default exception handler.
+    assertEquals(router.findExceptionHandler(RuntimeException.class), router.findExceptionHandler(IOException.class));
+
+    ExceptionHandler<RuntimeException> runtimeExceptionHandler = Mockito.mock(ExceptionHandler.class);
+    router.exceptionHandler(RuntimeException.class, runtimeExceptionHandler);
+    assertEquals(runtimeExceptionHandler, router.findExceptionHandler(RuntimeException.class));
+
+    class SubRuntimeException extends RuntimeException {
+
+    }
+    // Not register handler for SubRuntimeException, should return the handler for RuntimeException.
+    assertEquals(runtimeExceptionHandler, router.findExceptionHandler(SubRuntimeException.class));
+    ExceptionHandler<SubRuntimeException> subRuntimeExceptionHandler = Mockito.mock(ExceptionHandler.class);
+    router.exceptionHandler(SubRuntimeException.class, subRuntimeExceptionHandler);
+    assertEquals(subRuntimeExceptionHandler, router.findExceptionHandler(SubRuntimeException.class));
+  }
+
 }

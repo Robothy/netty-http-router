@@ -5,8 +5,11 @@ import com.robothy.netty.http.HttpRequestHandler;
 import com.robothy.netty.http.HttpResponse;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -26,8 +29,8 @@ import java.util.TreeSet;
 final class RouterImpl implements Router {
 
   static final HttpRequestHandler DEFAULT_NOT_FOUND_HANDLER = (request, response) -> {
-    response.status(HttpResponseStatus.NOT_FOUND);
-    response.write("Netty HTTP Router: 404 Not Found.");
+    response.status(HttpResponseStatus.NOT_FOUND)
+        .write("Netty HTTP Router: 404 Not Found.");
   };
 
   private final Set<Route> ruleSet = new HashSet<>();
@@ -38,6 +41,19 @@ final class RouterImpl implements Router {
 
   private StaticResourceRequestHandler staticResourceRequestHandler;
 
+  private final Map<Class<? extends Throwable>, ExceptionHandler<?>> exceptionHandlerMap;
+
+  {
+    exceptionHandlerMap = new HashMap<>();
+    exceptionHandlerMap.put(Throwable.class, (cause, request, response) -> {
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      PrintStream printStream = new PrintStream(out);
+      cause.printStackTrace(printStream);
+      response.write(out.toString())
+          .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), HttpHeaderValues.TEXT_PLAIN)
+          .status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+    });
+  }
 
   @Override
   public Router route(Route route) {
@@ -65,6 +81,24 @@ final class RouterImpl implements Router {
   public Router staticResource(Path resourceDirectory) {
     this.staticResourceRequestHandler = new StaticResourceRequestHandler(resourceDirectory);
     return this;
+  }
+
+  @Override
+  public <T extends Throwable> Router exceptionHandler(Class<T> exceptionType, ExceptionHandler<T> handler) {
+    Objects.requireNonNull(handler, "The exception handler shouldn't be null.");
+    exceptionHandlerMap.put(exceptionType, handler);
+    return this;
+  }
+
+  @Override
+  public ExceptionHandler<Throwable> findExceptionHandler(Class<? extends Throwable> exceptionType) {
+    ExceptionHandler<? extends Throwable> exceptionHandler = null;
+    Class<?> type = exceptionType;
+    while ( (exceptionHandler = exceptionHandlerMap.get(type)) == null) {
+      type = type.getSuperclass();
+    }
+    //noinspection unchecked
+    return (ExceptionHandler<Throwable>) exceptionHandler;
   }
 
   private HttpRequestHandler notFoundHandler() {

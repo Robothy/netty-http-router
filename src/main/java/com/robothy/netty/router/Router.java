@@ -15,6 +15,9 @@ import java.nio.file.Path;
  */
 public interface Router {
 
+  /**
+   * Create a default Router instance.
+   */
   static Router router() {
     return new RouterImpl();
   }
@@ -60,14 +63,26 @@ public interface Router {
   Router staticResource(Path rootPath);
 
   /**
+   * Set a handler for exceptions with {@code exceptionType}.
+   *
+   * @param exceptionType subtype of Throwable.
+   * @param handler handle specific exception.
+   * @return this.
+   * @param <T> type of the exception to handle..
+   */
+  <T extends Throwable> Router exceptionHandler(Class<T> exceptionType, ExceptionHandler<T> handler);
+
+  /**
+   * Find the best match exception handler for the given {@code exceptionType}.
+   */
+  ExceptionHandler<Throwable> findExceptionHandler(Class<? extends Throwable> exceptionType);
+
+  /**
    * Find a handler for the given request according to registered routes.
    *
    * @param request HTTP request.
    * @return a matched handler; or {@code null} if no matched handlers.
    */
   HttpRequestHandler match(HttpRequest request);
-
-
-
 
 }

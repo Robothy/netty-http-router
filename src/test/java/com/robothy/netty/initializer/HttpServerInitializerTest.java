@@ -117,7 +117,7 @@ class HttpServerInitializerTest {
     assertEquals(optionalSize.getAsLong(), size);
 
 
-    // Test HttpRequestHandler throws unhandled exception.
+    // Test default exception handler for a RuntimeException.
     AtomicReference<RuntimeException> exceptionHolder = new AtomicReference<>();
     router.route(HttpMethod.GET,"/test/exception", (req, resp) -> {
       exceptionHolder.set(new RuntimeException("Unhandled."));
@@ -129,7 +129,18 @@ class HttpServerInitializerTest {
             responseInfo -> HttpResponse.BodySubscribers.ofString(Charset.defaultCharset()));
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     exceptionHolder.get().printStackTrace(new PrintStream(out));
-    assertEquals("" + out, exceptionResponse.body());
+    assertEquals(out.toString(), exceptionResponse.body());
+
+    // Test user registered RuntimeException handler.
+    router.exceptionHandler(RuntimeException.class, (cause, req, resp) -> {
+      resp.write("Caught RuntimeException.")
+          .status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+    });
+    HttpResponse<String> customizedExceptionResp = HttpClient.newHttpClient()
+        .send(requestBuilder.GET().uri(new URI("http://localhost:8080/test/exception")).build(),
+            responseInfo -> HttpResponse.BodySubscribers.ofString(Charset.defaultCharset()));
+    assertEquals("Caught RuntimeException.", customizedExceptionResp.body());
+
 
     serverSocketChannel.close().sync();
     parentGroup.shutdownGracefully();

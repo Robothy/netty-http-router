@@ -4,6 +4,7 @@ package com.robothy.netty.codec;
 import com.robothy.netty.http.HttpRequest;
 import com.robothy.netty.http.HttpRequestHandler;
 import com.robothy.netty.http.HttpResponse;
+import com.robothy.netty.router.ExceptionHandler;
 import com.robothy.netty.router.Router;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -13,8 +14,6 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -41,13 +40,10 @@ public class HttpMessageHandler extends SimpleChannelInboundHandler<HttpRequest>
         handler.handle(request, response);
       } catch (Throwable e) {
         log.error("Failed to handle " + request.getMethod() + " " + request.getPath(), e);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        PrintStream printStream = new PrintStream(out);
-        e.printStackTrace(printStream);
-        response = new HttpResponse()
-            .write(out.toString())
-            .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), HttpHeaderValues.TEXT_PLAIN)
-            .status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+        ExceptionHandler<Throwable> exceptionHandler = router.findExceptionHandler(e.getClass());
+        response = new HttpResponse();
+        // Exceptions from exceptionHandler will be handled by exceptionCaught().
+        exceptionHandler.handle(e, request, response);
       }
     }
 
@@ -70,7 +66,7 @@ public class HttpMessageHandler extends SimpleChannelInboundHandler<HttpRequest>
     log.error("Caught exception.", cause);
     HttpResponse response = new HttpResponse();
     response.status(HttpResponseStatus.INTERNAL_SERVER_ERROR)
-        .write("<h1>LocalS3 Internal Error.</h1>")
+        .write("<h1>Internal Server Error.</h1>")
         .write(cause.getMessage())
         .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), HttpHeaderValues.TEXT_HTML)
         .putHeader(HttpHeaderNames.CONNECTION.toString(), HttpHeaderValues.CLOSE)
