@@ -31,11 +31,11 @@ jobs:
           mv gradle.properties.tmp gradle.properties
 
       - name: Commit next version
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: './gradle.properties'
-          author_name: GitHub Actions
-          author_email: bot@robothy.com
-          message: ${{steps.release.outputs.PUBLISH_VERSION}} released.
-          commit: ''
-          push: true
+        run: |
+          git config user.name "Github Actions"
+          git config user.email "bot@robothy.com"
+          git branch
+          git checkout main
+          git add ./gradle.properties
+          git commit -m '${{steps.release.outputs.PUBLISH_VERSION}} released.'
+          git push origin main
