@@ -37,5 +37,5 @@ jobs:
           author_name: GitHub Actions
           author_email: bot@robothy.com
           message: ${{steps.release.outputs.PUBLISH_VERSION}} released.
-          pull: '--rebase'
+          commit: ''
           push: true
