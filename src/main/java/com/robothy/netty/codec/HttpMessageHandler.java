@@ -35,7 +35,15 @@ public class HttpMessageHandler extends SimpleChannelInboundHandler<HttpRequest>
           .status(HttpResponseStatus.NOT_FOUND)
           .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), HttpHeaderValues.TEXT_HTML);
     } else {
-      handler.handle(request, response);
+      try {
+        handler.handle(request, response);
+      } catch (Throwable e) {
+        log.error("Failed to handle " + request.getMethod() + " " + request.getPath(), e);
+        response = new HttpResponse()
+            .write("Internal Server Error.")
+            .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), HttpHeaderValues.TEXT_HTML)
+            .status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+      }
     }
 
     if (null == response.getStatus()) {
