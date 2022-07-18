@@ -35,14 +35,15 @@ abstract class StaticResourceMatcher {
    */
   private static class ClasspathResourceMatcher extends StaticResourceMatcher {
 
-    private final String path;
+    private final String resourceRoot;
 
     private final HttpRequestHandler handler;
 
     ClasspathResourceMatcher(String path) {
-      this.path = path.substring("classpath:".length());
+      this.resourceRoot = path.substring("classpath:".length());
       this.handler = (request, response) -> {
-        URL url = Thread.currentThread().getContextClassLoader().getResource(this.path + request.getPath());
+        String resourceName = resourceName(request);
+        URL url = Thread.currentThread().getContextClassLoader().getResource(resourceName);
         Objects.requireNonNull(url, request.getPath() + " not exist.");
         String urlStr = url.toString();
         String contentType = Files.probeContentType(Paths.get(urlStr.substring(urlStr.lastIndexOf("/") + 1)));
@@ -55,12 +56,21 @@ abstract class StaticResourceMatcher {
 
     @Override
     public HttpRequestHandler match(HttpRequest request) {
-      URL resource = Thread.currentThread().getContextClassLoader().getResource(path + "/" + request.getPath());
+      String resourceName = resourceName(request);
+      URL resource = Thread.currentThread().getContextClassLoader().getResource(resourceName);
       if (null == resource) {
         return null;
       }
       return handler;
     }
+
+    String resourceName(HttpRequest request) {
+      if ("/".equals(request.getPath()) || "".equals(request.getPath())) {
+        return resourceRoot + "/index.html";
+      }
+      return resourceRoot + "/" + request.getPath();
+    }
+
   }
 
   /**
@@ -77,9 +87,8 @@ abstract class StaticResourceMatcher {
     DirectoryResourceMatcher(String directory) {
       this.rootDirectory = directory;
       this.handler = (request, response) -> {
-        String path = request.getPath();
-        Path normalizedRelativePath = Paths.get(path).normalize();
-        Path absPath = Paths.get(directory, normalizedRelativePath.toString());
+        String filename = filename(request);
+        Path absPath = Paths.get(directory, filename);
 
         try (FileChannel fileChannel = FileChannel.open(absPath, StandardOpenOption.READ)) {
           long contentLength = fileChannel.size();
@@ -111,15 +120,23 @@ abstract class StaticResourceMatcher {
         return null;
       }
 
-      String relativePath = request.getPath();
-      Path normalizedRelativePath = Paths.get(relativePath).normalize();
-      Path absPath = Paths.get(rootDirectory, normalizedRelativePath.toString());
+      String filename = filename(request);
+      Path absPath = Paths.get(rootDirectory, filename);
       if (!absPath.toFile().exists()) {
         return null;
       }
 
       return handler;
     }
+
+    private String filename(HttpRequest request) {
+      if ("".equals(request.getPath()) || "/".equals(request.getPath())) {
+        return "index.html";
+      }
+
+      return Paths.get(request.getPath()).normalize().toString();
+    }
+
   }
 
 }
