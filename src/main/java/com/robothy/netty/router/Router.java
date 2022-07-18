@@ -42,15 +42,12 @@ public interface Router {
   Router notFound(HttpRequestHandler handler);
 
   /**
-   * Route for static resources. This method could be invoked multiple times for
-   * different resources. The router will map the request uri to the relative path
-   * of files under the {@code rootPath} directory.
+   * The router will map the request uri to the relative path of files under the {@code rootPath}
+   * directory. By default, the router loads static resources from `classpath:static`.
    *
    * <ul>
-   *   <li/> If {@code rootPath} is a directory, the router will map the request uri
+   *   <li/> The {@code rootPath} must be a valid directory, the router will map the request uri
    *   to relative path of files under the {@code rootPath} directory.
-   *
-   *   <li/> If the {@code rootPath} is a file, then its parent is a static resource root.
    *
    *   <li/> If static resource paths conflict with routes registered via {@code route()},
    *   the router will ignore static resources.
@@ -60,7 +57,7 @@ public interface Router {
    * @param rootPath static resources root directory or resource path.
    * @return this.
    */
-  Router staticResource(Path rootPath);
+  Router staticResource(String rootPath);
 
   /**
    * Set a handler for exceptions with {@code exceptionType}.

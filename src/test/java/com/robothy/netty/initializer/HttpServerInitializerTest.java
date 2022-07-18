@@ -46,7 +46,7 @@ class HttpServerInitializerTest {
         .route(HttpMethod.GET, "/", ((request, response) -> response
             .status(HttpResponseStatus.OK)
             .write("Hello World")))
-        .staticResource(Paths.get("src"));
+        .staticResource("src");
 
     DefaultEventExecutorGroup executor = new DefaultEventExecutorGroup(2);
     HttpServerInitializer serverInitializer = new HttpServerInitializer(executor, router);
@@ -76,7 +76,7 @@ class HttpServerInitializerTest {
 
 
     Path staticResourceDirectory = Files.createTempDirectory("static-resource");
-    router.staticResource(staticResourceDirectory);
+    router.staticResource(staticResourceDirectory.toString());
 
     // Test get small static file.
     Path smallFilePath = Paths.get(staticResourceDirectory.toString(), "/small.txt");
@@ -116,6 +116,15 @@ class HttpServerInitializerTest {
     assertTrue(optionalSize.isPresent());
     assertEquals(optionalSize.getAsLong(), size);
 
+    // Test get static resource from classpath
+    router.staticResource("classpath:static");
+    HttpResponse<String> classpathResourceResp = HttpClient.newHttpClient()
+        .send(requestBuilder.GET()
+            .uri(new URI("http://localhost:8080/test.html"))
+            .build(), responseInfo -> HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8));
+    assertEquals(200, classpathResourceResp.statusCode());
+    assertEquals("Hello World", classpathResourceResp.body());
+    assertEquals("text/html", classpathResourceResp.headers().firstValue("Content-Type").get());
 
     // Test default exception handler for a RuntimeException.
     AtomicReference<RuntimeException> exceptionHolder = new AtomicReference<>();

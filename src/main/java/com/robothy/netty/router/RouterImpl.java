@@ -2,21 +2,11 @@ package com.robothy.netty.router;
 
 import com.robothy.netty.http.HttpRequest;
 import com.robothy.netty.http.HttpRequestHandler;
-import com.robothy.netty.http.HttpResponse;
-import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,8 +28,8 @@ final class RouterImpl implements Router {
   private final TreeNode root = new TreeNode();
 
   private HttpRequestHandler notFoundHandler;
-
-  private StaticResourceRequestHandler staticResourceRequestHandler;
+  private StaticResourceMatcher staticResourceMatcher
+      = StaticResourceMatcher.create("classpath:static");
 
   private final Map<Class<? extends Throwable>, ExceptionHandler<?>> exceptionHandlerMap;
 
@@ -78,8 +68,8 @@ final class RouterImpl implements Router {
   }
 
   @Override
-  public Router staticResource(Path resourceDirectory) {
-    this.staticResourceRequestHandler = new StaticResourceRequestHandler(resourceDirectory);
+  public Router staticResource(String rootPath) {
+    this.staticResourceMatcher = StaticResourceMatcher.create(rootPath);
     return this;
   }
 
@@ -127,7 +117,7 @@ final class RouterImpl implements Router {
   @Override
   public HttpRequestHandler match(HttpRequest request) {
     HttpRequestHandler handler;
-    if (null != (handler = matchHandler(request)) || null != (handler = matchStaticResource(request))) {
+    if (null != (handler = matchHandler(request)) || null != (handler = staticResourceMatcher.match(request))) {
       return handler;
     }
     return this.notFoundHandler();
@@ -169,22 +159,6 @@ final class RouterImpl implements Router {
 
     request.getParams().putAll(parsePathParams(result.getPath(), request.getPath()));
     return result.getHandler();
-  }
-
-  private HttpRequestHandler matchStaticResource(HttpRequest request) {
-    if (this.staticResourceRequestHandler == null || request.getMethod() != HttpMethod.GET) {
-      return null;
-    }
-
-    Path staticResourceDir = this.staticResourceRequestHandler.staticResourceDirectory;
-    String relativePath = request.getPath();
-    Path normalizedRelativePath = Paths.get(relativePath).normalize();
-    Path absPath = Paths.get(staticResourceDir.toString(), normalizedRelativePath.toString());
-    if (absPath.toFile().exists()) {
-      return staticResourceRequestHandler;
-    }
-
-    return null;
   }
 
   private Map<String, List<String>> parsePathParams(String pattern, String path) {
@@ -266,47 +240,6 @@ final class RouterImpl implements Router {
 
       return score2 - score1;
     });
-  }
-
-  private static class StaticResourceRequestHandler implements HttpRequestHandler {
-
-    static int MAP_THRESHOLD = 10 * 1024 * 1024; // 10MB
-
-    private final Path staticResourceDirectory;
-
-    StaticResourceRequestHandler(Path staticResourcePath) {
-      this.staticResourceDirectory = staticResourcePath;
-    }
-
-    @Override
-    public void handle(HttpRequest request, HttpResponse response) throws Exception {
-      String path = request.getPath();
-      Path normalizedRelativePath = Paths.get(path).normalize();
-      Path absPath = Paths.get(staticResourceDirectory.toString(), normalizedRelativePath.toString());
-
-      try (FileChannel fileChannel = FileChannel.open(absPath, StandardOpenOption.READ)) {
-        long contentLength = fileChannel.size();
-        response.status(HttpResponseStatus.OK)
-            .putHeader(HttpHeaderNames.CONTENT_LENGTH.toString(), contentLength)
-            .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), Files.probeContentType(absPath));
-
-        if (contentLength > MAP_THRESHOLD) {
-          MappedByteBuffer byteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, contentLength);
-          response.write(Unpooled.wrappedBuffer(byteBuffer));
-        } else {
-          int size = (int) contentLength;
-          ByteBuffer buf = ByteBuffer.allocate(size);
-          int readLen = 0;
-          while( size != (readLen += fileChannel.read(buf, readLen)) ) {
-            buf.compact();
-          }
-          buf.flip();
-          response.write(Unpooled.wrappedBuffer(buf));
-        }
-
-      }
-
-    }
   }
 
 }

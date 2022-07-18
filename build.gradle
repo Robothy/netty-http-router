@@ -24,6 +24,7 @@ dependencies {
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
+    implementation "org.slf4j:slf4j-simple:${slf4jVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:${jupiterVersion}"
     testImplementation "org.mockito:mockito-inline:${mockitoVersion}"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${jupiterVersion}"
@@ -39,6 +40,15 @@ java {
     }
 }
 
+task sourcesJar(type: Jar, group: 'build') {
+    from sourceSets.main.allJava
+    archiveClassifier.set("sources")
+}
+
+artifacts {
+    archives sourcesJar
+}
+
 publishing {
 
     publications {
@@ -47,6 +57,7 @@ publishing {
             artifactId = project.name
             version = System.getenv("PUBLISH_VERSION") ?: version
             from components.java
+            artifact sourcesJar
         }
     }
 

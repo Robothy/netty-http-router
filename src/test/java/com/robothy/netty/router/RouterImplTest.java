@@ -1,12 +1,12 @@
 package com.robothy.netty.router;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.robothy.netty.http.HttpRequest;
 import com.robothy.netty.http.HttpRequestHandler;
 import io.netty.handler.codec.http.HttpMethod;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +17,7 @@ import org.mockito.Mockito;
 class RouterImplTest {
 
   @Test
-  void match() throws IllegalAccessException, NoSuchFieldException {
+  void match() throws Exception {
     RouterImpl router = new RouterImpl();
     HttpRequestHandler listHandler = Mockito.mock(HttpRequestHandler.class);
     assertThrows(IllegalArgumentException.class, () -> router.route(HttpMethod.GET, "", listHandler));
@@ -82,17 +82,24 @@ class RouterImplTest {
         .headerMather(hs -> hs.containsKey("hello"))
         .paramMatcher(ps -> ps.containsKey("version")));
     assertEquals(headerParamHandler, router.match(requestBuilder.build()));
+  }
 
-    router.staticResource(Paths.get("src"));
-    Field staticResourceRequestHandlerField = RouterImpl.class.getDeclaredField("staticResourceRequestHandler");
-    staticResourceRequestHandlerField.setAccessible(true);
-    var staticResourceRequestHandler = (HttpRequestHandler) staticResourceRequestHandlerField.get(router);
+  @Test
+  void testStaticResources() {
+    Router router = new RouterImpl();
+    HttpRequest.HttpRequestBuilder requestBuilder = HttpRequest.builder();
 
-    assertEquals(staticResourceRequestHandler, router.match(requestBuilder
+    /* Static resources in classpath:static */
+    assertNotNull(router.match(requestBuilder.method(HttpMethod.GET)
+        .path("/test.html").build()));
+
+    /* Static resources in directory */
+    router.staticResource("src");
+    assertNotNull(router.match(requestBuilder
         .method(HttpMethod.GET)
         .path("/test/java/com/robothy/netty/router/RouterImplTest.java").build()));
 
-    assertEquals(notFoundHandler, router.match(requestBuilder
+    assertNotNull(router.match(requestBuilder
         .method(HttpMethod.POST)
         .path("/test/java/com/robothy/netty/router/RouterImplTest.java").build()));
   }
