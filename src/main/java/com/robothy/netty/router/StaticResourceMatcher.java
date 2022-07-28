@@ -68,7 +68,7 @@ abstract class StaticResourceMatcher {
       if ("/".equals(request.getPath()) || "".equals(request.getPath())) {
         return resourceRoot + "/index.html";
       }
-      return resourceRoot + "/" + request.getPath();
+      return resourceRoot + request.getPath();
     }
 
   }
