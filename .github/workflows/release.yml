@@ -38,4 +38,5 @@ jobs:
           git checkout main
           git add ./gradle.properties
           git commit -m '${{steps.release.outputs.PUBLISH_VERSION}} released.'
-          git push origin main
+          git remote -v
+          git push
