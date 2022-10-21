@@ -4,7 +4,6 @@ package com.robothy.netty.router;
 import com.robothy.netty.http.HttpRequest;
 import com.robothy.netty.http.HttpRequestHandler;
 import io.netty.handler.codec.http.HttpMethod;
-import java.nio.file.Path;
 
 /**
  * A Router is a S3RequestHandler container. The route path must starts with a '/'.
@@ -31,7 +30,12 @@ public interface Router {
   Router route(Route rule);
 
   default Router route(HttpMethod method, String path, HttpRequestHandler handler) {
-    return route(new Route(method, path, handler));
+    Route rule = Route.builder()
+        .method(method)
+        .path(path)
+        .handler(handler)
+        .build();
+    return route(rule);
   }
 
   /**

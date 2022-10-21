@@ -9,25 +9,22 @@ import java.util.function.Function;
 import lombok.Getter;
 
 @Getter
-class Route {
+public class Route {
 
-  private final HttpMethod method;
+  private HttpMethod method;
 
-  private final String path;
+  private String path;
 
-  private final HttpRequestHandler handler;
+  private HttpRequestHandler handler;
 
   private Function<Map<CharSequence, String>, Boolean> headerMatcher;
 
   private Function<Map<CharSequence, List<String>>, Boolean> paramMatcher;
 
-  private final String trimPath;
+  private String trimPath;
 
-  public Route(HttpMethod method, String path, HttpRequestHandler handler) {
-    this.method = method;
-    this.path = path;
-    this.handler = handler;
-    this.trimPath = trimPath();
+  private Route() {
+
   }
 
   public Route headerMather(Function<Map<CharSequence, String>, Boolean> headerMatcher) {
@@ -58,16 +55,66 @@ class Route {
     return Objects.hash(method, trimPath, headerMatcher, paramMatcher);
   }
 
-  private String trimPath() {
-    String[] segments = path.split("/");
-    StringBuilder result = new StringBuilder();
-    for (String seg : segments) {
-      if (seg.startsWith("{") && seg.endsWith("}")) {
-        result.append("/{}");
-      } else {
-        result.append('/').append(seg);
-      }
-    }
-    return result.toString();
+  public static Builder builder() {
+    return new Builder();
   }
+
+  public static class Builder {
+
+    Route propHolder = new Route();
+
+    public Builder method(HttpMethod method) {
+      propHolder.method = method;
+      return this;
+    }
+
+    public Builder path(String path) {
+      propHolder.path = path;
+      return this;
+    }
+
+    public Builder headerMatcher(Function<Map<CharSequence, String>, Boolean> headerMatcher) {
+      propHolder.headerMatcher = headerMatcher;
+      return this;
+    }
+
+    public Builder paramMatcher(Function<Map<CharSequence, List<String>>, Boolean> paramMatcher) {
+      propHolder.paramMatcher = paramMatcher;
+      return this;
+    }
+
+    public Builder handler(HttpRequestHandler handler) {
+      propHolder.handler = handler;
+      return this;
+    }
+
+    private String trimPath(String path) {
+      String[] segments = path.split("/");
+      StringBuilder result = new StringBuilder();
+      for (String seg : segments) {
+        if (seg.startsWith("{") && seg.endsWith("}")) {
+          result.append("/{}");
+        } else {
+          result.append('/').append(seg);
+        }
+      }
+      return result.toString();
+    }
+
+    public Route build() {
+      Objects.requireNonNull(propHolder.method, "'method' is required.");
+      Objects.requireNonNull(propHolder.path, "'path' is required.");
+      Objects.requireNonNull(propHolder.handler, "'handler'' is required.");
+      Route route = new Route();
+      route.method = propHolder.method;
+      route.path = propHolder.path;
+      route.handler = propHolder.handler;
+      route.paramMatcher = propHolder.paramMatcher;
+      route.headerMatcher = propHolder.headerMatcher;
+      route.trimPath = trimPath(route.path);
+      return route;
+    }
+
+  }
+
 }

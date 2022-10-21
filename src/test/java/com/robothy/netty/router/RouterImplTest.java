@@ -22,7 +22,7 @@ class RouterImplTest {
     HttpRequestHandler listHandler = Mockito.mock(HttpRequestHandler.class);
     assertThrows(IllegalArgumentException.class, () -> router.route(HttpMethod.GET, "", listHandler));
     assertThrows(IllegalArgumentException.class, () -> router.route(HttpMethod.GET, "/a/{}", listHandler));
-    router.route(new Route(HttpMethod.GET, "/list", listHandler));
+    router.route(Route.builder().method(HttpMethod.GET).path("/list").handler(listHandler).build());
     HttpRequest.HttpRequestBuilder requestBuilder = HttpRequest.builder();
     HttpRequest listRequest = requestBuilder
         .method(HttpMethod.GET)
@@ -61,16 +61,22 @@ class RouterImplTest {
     assertEquals(postAHandler, router.match(requestBuilder.path("/a/content").build()));
 
     HttpRequestHandler paramRequestHandler = Mockito.mock(HttpRequestHandler.class);
-    router.route(new Route(HttpMethod.HEAD, "/a/content", paramRequestHandler)
-        .paramMatcher(ps -> ps.containsKey("version")));
+    router.route(Route.builder()
+        .method(HttpMethod.HEAD)
+        .path("/a/content")
+        .paramMatcher(ps -> ps.containsKey("version"))
+        .handler(paramRequestHandler)
+        .build());
     Map<CharSequence, List<String>> parameters = new HashMap<>();
     parameters.put("version", Collections.emptyList());
     assertEquals(notFoundHandler, router.match(requestBuilder.method(HttpMethod.HEAD).path("/a/content").build()));
     assertEquals(paramRequestHandler, router.match(requestBuilder.params(parameters).build()));
 
     HttpRequestHandler headerRequestHandler = Mockito.mock(HttpRequestHandler.class);
-    router.route(new Route(HttpMethod.HEAD, "/a/content", headerRequestHandler)
-        .headerMather(hs -> hs.containsKey("hello")));
+    router.route(Route.builder().method(HttpMethod.HEAD).path("/a/content")
+            .headerMatcher(hs -> hs.containsKey("hello"))
+            .handler(headerRequestHandler)
+            .build());
     assertEquals(paramRequestHandler, router.match(requestBuilder.method(HttpMethod.HEAD).path("/a/content").build()));
     Map<CharSequence, String> headers = new HashMap<>();
     headers.put("hello", "");
@@ -78,9 +84,13 @@ class RouterImplTest {
     assertEquals(headerRequestHandler, router.match(requestBuilder.headers(headers).build()));
 
     HttpRequestHandler headerParamHandler = Mockito.mock(HttpRequestHandler.class);
-    router.route(new Route(HttpMethod.HEAD, "/a/content", headerParamHandler)
-        .headerMather(hs -> hs.containsKey("hello"))
-        .paramMatcher(ps -> ps.containsKey("version")));
+    router.route(Route.builder()
+            .method(HttpMethod.HEAD)
+            .path("/a/content")
+            .headerMatcher(hs -> hs.containsKey("hello"))
+            .paramMatcher(ps -> ps.containsKey("version"))
+            .handler(headerParamHandler)
+        .build());
     assertEquals(headerParamHandler, router.match(requestBuilder.build()));
   }
 
