@@ -1,10 +1,20 @@
 name: Release
 on:
-  release:
-    types: [ 'published' ]
+  workflow_dispatch:
+    inputs:
+      gradleLogLevel:
+        description: 'Gradle logging level.'
+        required: false
+        default: None
+        type: choice
+        options:
+          - None
+          - Info
+          - Debug
+          - Stacktrace
 
 jobs:
-  publish-to-maven:
+  release:
     runs-on: ubuntu-20.04
     env:
       GITHUB_USERNAME: Robothy
@@ -13,6 +23,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Setup Java 17 for Gradle
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Gradle Cache
         uses: actions/cache@v3
         with:
@@ -20,29 +36,26 @@ jobs:
             ~/.gradle/caches
           key: ${{runner.os}}-build-gradle-${{hashFiles('**/gradle-wrapper.properties')}}
 
-      - name: Release
-        id: release
+      - name: Prepare parameters
         run: |
-          pwd
-          ls -l
           git log --pretty=format:"%H - %an, %aI : %s" -5
+          mkdir ~/.gradle
+          echo "GITHUB_TOKEN=${{secrets.PACKAGES_TOKEN}}" > ~/.gradle/gradle.properties
+          echo "GITHUB_USERNAME=Robothy" >> ~/.gradle/gradle.properties
           chmod +x gradlew
-          export PUBLISH_VERSION=`awk -F '=' '$1=="version" {print substr($2, 0, index($2, "-")-1)}' gradle.properties`
-          echo ''
-          echo ::set-output name=PUBLISH_VERSION::$(echo $PUBLISH_VERSION)
-          echo publishing version $PUBLISH_VERSION
-          ./gradlew publish -PGITHUB_TOKEN=${{secrets.PACKAGES_TOKEN}}
-          export NEXT_VERSION=`echo $PUBLISH_VERSION | awk '{print substr($1, 0, match($1, /\.[0-9]*$/)) substr($1, match($1, /\.[0-9]*$/)+1)+1"-SNAPSHOT"}'`
-          echo next version $NEXT_VERSION
-          awk -F '=' -v next_version="$NEXT_VERSION" '{ if ($1 == "version") print $1"="next_version; else print $1"="$2}' gradle.properties > gradle.properties.tmp
-          mv gradle.properties.tmp gradle.properties
 
-      - name: Commit next version
-        run: |
-          git config user.name "Github Actions"
-          git config user.email "bot@robothy.com"
-          git branch
-          git remote -v
-          git add ./gradle.properties
-          git commit -m '${{steps.release.outputs.PUBLISH_VERSION}} released.'
-          git push
+      - name: Release
+        if: ${{inputs.gradleLogLevel == 'None'}}
+        run: ./gradlew check publishPlugins -Prelease=true
+
+      - name: Release(Info)
+        if: ${{inputs.gradleLogLevel == 'Info'}}
+        run: ./gradlew check publishPlugins -Prelease=true --info
+
+      - name: Release(Debug)
+        if: ${{inputs.gradleLogLevel == 'Debug'}}
+        run: ./gradlew check publishPlugins -Prelease=true --debug
+
+      - name: Release(Stacktrace)
+        if: ${{inputs.gradleLogLevel == 'Stacktrace'}}
+        run: ./gradlew check publishPlugins -Prelease=true --stacktrace

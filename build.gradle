@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'maven-publish'
     id "com.robothy.cn-repo" version "1.8"
+    id "robothy-platform-release"
 }
 
 group 'com.robothy'
