@@ -1,12 +1,13 @@
 plugins {
     id 'java'
     id 'maven-publish'
-    id "com.robothy.cn-repo" version "1.8"
+    id
 }
 
 group 'com.robothy'
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
