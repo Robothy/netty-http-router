@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    id 'maven-publish'
     id "com.robothy.cn-repo" version "1.8"
     id "robothy-platform-release"
 }
@@ -51,16 +50,6 @@ artifacts {
 }
 
 publishing {
-
-    publications {
-        maven(MavenPublication) {
-            groupId = group
-            artifactId = project.name
-            version = System.getenv("PUBLISH_VERSION") ?: version
-            from components.java
-            artifact sourcesJar
-        }
-    }
 
     repositories {
         mavenLocal()
