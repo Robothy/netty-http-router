@@ -4,7 +4,7 @@
 
 A library help to build web applications based on Netty.
 
-## 1. Usage
+## 1. Getting Started
 
 ### 1.1 Config Maven repository
 
