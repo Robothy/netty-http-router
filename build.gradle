@@ -8,6 +8,7 @@ plugins {
 group 'com.robothy'
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -17,6 +18,7 @@ ext {
     jupiterVersion = "5.8.1"
     slf4jVersion = "1.7.36"
     mockitoVersion = "3.4.0"
+    sprintframeworkVersion = "5.3.23"
 }
 
 dependencies {
@@ -26,7 +28,10 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     implementation "org.slf4j:slf4j-simple:${slf4jVersion}"
+    //implementation "org.springframework:spring-core:${sprintframeworkVersion}"
+    implementation "org.springframework:spring-web:${sprintframeworkVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:${jupiterVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:${jupiterVersion}"
     testImplementation "org.mockito:mockito-inline:${mockitoVersion}"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${jupiterVersion}"
 }

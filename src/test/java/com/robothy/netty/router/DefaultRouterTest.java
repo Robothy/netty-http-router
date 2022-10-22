@@ -14,11 +14,11 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-class RouterImplTest {
+class DefaultRouterTest {
 
   @Test
   void match() throws Exception {
-    RouterImpl router = new RouterImpl();
+    DefaultRouter router = new DefaultRouter();
     HttpRequestHandler listHandler = Mockito.mock(HttpRequestHandler.class);
     assertThrows(IllegalArgumentException.class, () -> router.route(HttpMethod.GET, "", listHandler));
     assertThrows(IllegalArgumentException.class, () -> router.route(HttpMethod.GET, "/a/{}", listHandler));
@@ -34,7 +34,7 @@ class RouterImplTest {
     assertEquals(listHandler, router.match(listRequest));
 
     HttpRequestHandler notFoundHandler = Mockito.mock(HttpRequestHandler.class);
-    assertEquals(RouterImpl.DEFAULT_NOT_FOUND_HANDLER, router.match(requestBuilder.path("/list/a").build()));
+    assertEquals(DefaultRouter.DEFAULT_NOT_FOUND_HANDLER, router.match(requestBuilder.path("/list/a").build()));
     router.notFound(notFoundHandler);
     assertEquals(notFoundHandler, router.match(requestBuilder.path("/").build()));
     assertEquals(notFoundHandler, router.match(requestBuilder.method(HttpMethod.PUT).path("/list").build()));
@@ -96,7 +96,7 @@ class RouterImplTest {
 
   @Test
   void testStaticResources() {
-    Router router = new RouterImpl();
+    Router router = new DefaultRouter();
     HttpRequest.HttpRequestBuilder requestBuilder = HttpRequest.builder();
 
     /* Static resources in classpath:static */
@@ -116,7 +116,7 @@ class RouterImplTest {
 
   @Test
   void testExceptionHandler() {
-    RouterImpl router = new RouterImpl();
+    DefaultRouter router = new DefaultRouter();
     assertNotNull(router.findExceptionHandler(RuntimeException.class));
     // Both found the default exception handler.
     assertEquals(router.findExceptionHandler(RuntimeException.class), router.findExceptionHandler(IOException.class));

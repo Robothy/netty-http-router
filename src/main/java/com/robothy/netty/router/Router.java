@@ -4,6 +4,7 @@ package com.robothy.netty.router;
 import com.robothy.netty.http.HttpRequest;
 import com.robothy.netty.http.HttpRequestHandler;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
  * A Router is a S3RequestHandler container. The route path must starts with a '/'.
@@ -14,11 +15,14 @@ import io.netty.handler.codec.http.HttpMethod;
  */
 public interface Router {
 
+  HttpRequestHandler DEFAULT_NOT_FOUND_HANDLER = (request, response) -> response.status(HttpResponseStatus.NOT_FOUND)
+      .write("Netty HTTP Router: 404 Not Found.");
+
   /**
    * Create a default Router instance.
    */
   static Router router() {
-    return new RouterImpl();
+    return new SpringWebRouter();
   }
 
   /**
@@ -80,6 +84,7 @@ public interface Router {
 
   /**
    * Find a handler for the given request according to registered routes.
+   * And set the extracted path parameters to {@linkplain HttpRequest#parameters(String)}.
    *
    * @param request HTTP request.
    * @return a matched handler; or {@code null} if no matched handlers.

@@ -1,4 +1,4 @@
-package com.robothy.netty.router.utils;
+package com.robothy.netty.utils;
 
 import java.util.Collections;
 import java.util.HashMap;

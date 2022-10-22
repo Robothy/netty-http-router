@@ -2,11 +2,6 @@ package com.robothy.netty.router;
 
 import com.robothy.netty.http.HttpRequest;
 import com.robothy.netty.http.HttpRequestHandler;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,34 +11,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
-final class RouterImpl implements Router {
-
-  static final HttpRequestHandler DEFAULT_NOT_FOUND_HANDLER = (request, response) -> {
-    response.status(HttpResponseStatus.NOT_FOUND)
-        .write("Netty HTTP Router: 404 Not Found.");
-  };
+final class DefaultRouter extends AbstractRouter {
 
   private final Set<Route> ruleSet = new HashSet<>();
 
   private final TreeNode root = new TreeNode();
-
-  private HttpRequestHandler notFoundHandler;
-  private StaticResourceMatcher staticResourceMatcher
-      = StaticResourceMatcher.create("classpath:static");
-
-  private final Map<Class<? extends Throwable>, ExceptionHandler<?>> exceptionHandlerMap;
-
-  {
-    exceptionHandlerMap = new HashMap<>();
-    exceptionHandlerMap.put(Throwable.class, (cause, request, response) -> {
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      PrintStream printStream = new PrintStream(out);
-      cause.printStackTrace(printStream);
-      response.write(out.toString())
-          .putHeader(HttpHeaderNames.CONTENT_TYPE.toString(), HttpHeaderValues.TEXT_PLAIN)
-          .status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-    });
-  }
 
   @Override
   public Router route(Route route) {
@@ -59,40 +31,6 @@ final class RouterImpl implements Router {
     }
     node.routes.add(route);
     return this;
-  }
-
-  @Override
-  public Router notFound(HttpRequestHandler handler) {
-    this.notFoundHandler = handler;
-    return this;
-  }
-
-  @Override
-  public Router staticResource(String rootPath) {
-    this.staticResourceMatcher = StaticResourceMatcher.create(rootPath);
-    return this;
-  }
-
-  @Override
-  public <T extends Throwable> Router exceptionHandler(Class<T> exceptionType, ExceptionHandler<T> handler) {
-    Objects.requireNonNull(handler, "The exception handler shouldn't be null.");
-    exceptionHandlerMap.put(exceptionType, handler);
-    return this;
-  }
-
-  @Override
-  public ExceptionHandler<Throwable> findExceptionHandler(Class<? extends Throwable> exceptionType) {
-    ExceptionHandler<? extends Throwable> exceptionHandler = null;
-    Class<?> type = exceptionType;
-    while ( (exceptionHandler = exceptionHandlerMap.get(type)) == null) {
-      type = type.getSuperclass();
-    }
-    //noinspection unchecked
-    return (ExceptionHandler<Throwable>) exceptionHandler;
-  }
-
-  private HttpRequestHandler notFoundHandler() {
-    return this.notFoundHandler != null ? this.notFoundHandler : DEFAULT_NOT_FOUND_HANDLER;
   }
 
   private TreeNode addNode(TreeNode parent, String path) {
@@ -117,10 +55,10 @@ final class RouterImpl implements Router {
   @Override
   public HttpRequestHandler match(HttpRequest request) {
     HttpRequestHandler handler;
-    if (null != (handler = matchHandler(request)) || null != (handler = staticResourceMatcher.match(request))) {
+    if (null != (handler = matchHandler(request)) || null != (handler = super.staticResourceMatcher().match(request))) {
       return handler;
     }
-    return this.notFoundHandler();
+    return super.notFoundHandler();
   }
 
   private HttpRequestHandler matchHandler(HttpRequest request) {
@@ -222,6 +160,7 @@ final class RouterImpl implements Router {
     private final TreeSet<Route> routes = new TreeSet<>((r1, r2) -> {
       // r1 and r2 has the same method and path
       int score1 = 0, score2 = 0;
+      // Header matcher has higher priority.
       if (Objects.nonNull(r1.getHeaderMatcher())) {
         score1 |= (1 << 1);
       }

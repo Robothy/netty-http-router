@@ -53,11 +53,12 @@ class HttpServerInitializerTest {
 
     EventLoopGroup parentGroup = new NioEventLoopGroup(1);
     EventLoopGroup childGroup = new NioEventLoopGroup(1);
+    int port = 18080;
     Channel serverSocketChannel = new ServerBootstrap().group(parentGroup, childGroup)
         .handler(new LoggingHandler(LogLevel.DEBUG))
         .channel(NioServerSocketChannel.class)
         .childHandler(serverInitializer)
-        .bind(8080)
+        .bind(port)
         .sync()
         .channel();
 
@@ -67,7 +68,7 @@ class HttpServerInitializerTest {
         .version(HttpClient.Version.HTTP_1_1);
 
     HttpResponse<String> response = HttpClient.newHttpClient()
-        .send(requestBuilder.GET().uri(new URI("http://localhost:8080"))
+        .send(requestBuilder.GET().uri(new URI("http://localhost:" + port))
             .build(), body -> {
           assertEquals(200, body.statusCode());
           return HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8);
@@ -83,7 +84,7 @@ class HttpServerInitializerTest {
     Files.writeString(smallFilePath, "Hello World");
     HttpResponse<String> smallResourceResp = HttpClient.newHttpClient()
         .send(requestBuilder.GET()
-            .uri(new URI("http://localhost:8080/small.txt"))
+            .uri(new URI("http://localhost:" + port + "/small.txt"))
             .build(), responseInfo -> HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8));
     assertEquals(200, smallResourceResp.statusCode());
     HttpHeaders headers = smallResourceResp.headers();
@@ -109,7 +110,7 @@ class HttpServerInitializerTest {
     HttpResponse<InputStream> largeResourceResp = HttpClient.newHttpClient()
         .send(requestBuilder
                 .GET()
-                .uri(new URI("http://localhost:8080/large.dat"))
+                .uri(new URI("http://localhost:" + port + "/large.dat"))
                 .build(),
             responseInfo -> HttpResponse.BodySubscribers.ofInputStream());
     OptionalLong optionalSize = largeResourceResp.headers().firstValueAsLong("Content-Length");
@@ -120,7 +121,7 @@ class HttpServerInitializerTest {
     router.staticResource("classpath:static");
     HttpResponse<String> classpathResourceResp = HttpClient.newHttpClient()
         .send(requestBuilder.GET()
-            .uri(new URI("http://localhost:8080/test.html"))
+            .uri(new URI("http://localhost:" + port + "/test.html"))
             .build(), responseInfo -> HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8));
     assertEquals(200, classpathResourceResp.statusCode());
     assertEquals("Hello World", classpathResourceResp.body());
@@ -134,7 +135,7 @@ class HttpServerInitializerTest {
     });
 
     HttpResponse<String> exceptionResponse = HttpClient.newHttpClient()
-        .send(requestBuilder.GET().uri(new URI("http://localhost:8080/test/exception")).build(),
+        .send(requestBuilder.GET().uri(new URI("http://localhost:" + port + "/test/exception")).build(),
             responseInfo -> HttpResponse.BodySubscribers.ofString(Charset.defaultCharset()));
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     exceptionHolder.get().printStackTrace(new PrintStream(out));
@@ -146,7 +147,7 @@ class HttpServerInitializerTest {
           .status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     });
     HttpResponse<String> customizedExceptionResp = HttpClient.newHttpClient()
-        .send(requestBuilder.GET().uri(new URI("http://localhost:8080/test/exception")).build(),
+        .send(requestBuilder.GET().uri(new URI("http://localhost:" + port + "/test/exception")).build(),
             responseInfo -> HttpResponse.BodySubscribers.ofString(Charset.defaultCharset()));
     assertEquals("Caught RuntimeException.", customizedExceptionResp.body());
 
