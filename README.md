@@ -176,10 +176,3 @@ Router router=Router.router()
       .write(e.getMessage()))
     ;
 ```
-
-<style>
-  code {
-    white-space : pre-wrap !important;
-    word-break: break-word;
-  }
-</style>
