@@ -52,7 +52,7 @@ public class HttpMessageHandler extends SimpleChannelInboundHandler<HttpRequest>
     }
 
     boolean keepAlive = request.getHttpVersion().isKeepAliveDefault() ||
-        HttpHeaderValues.KEEP_ALIVE.contentEquals(request.header(HttpHeaderNames.CONNECTION.toString()));
+        HttpHeaderValues.KEEP_ALIVE.contentEquals(request.header(HttpHeaderNames.CONNECTION.toString()).orElse(null));
     response.putHeader(HttpHeaderNames.CONNECTION.toString(), keepAlive ? HttpHeaderValues.KEEP_ALIVE : HttpHeaderValues.CLOSE);
     response.putHeader(HttpHeaderNames.CONTENT_LENGTH.toString(), response.getBody().readableBytes());
     ChannelFuture channelFuture = ctx.writeAndFlush(response);

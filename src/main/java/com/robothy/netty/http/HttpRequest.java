@@ -3,8 +3,10 @@ package com.robothy.netty.http;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -12,9 +14,11 @@ import lombok.Getter;
 @Builder
 public class HttpRequest {
 
-  private Map<CharSequence, String> headers;
+  @Builder.Default
+  private Map<CharSequence, String> headers = new HashMap<>();
 
-  private Map<CharSequence, List<String>> params;
+  @Builder.Default
+  private Map<CharSequence, List<String>> params = new HashMap<>();
 
   private String path;
 
@@ -26,19 +30,37 @@ public class HttpRequest {
 
   private HttpVersion httpVersion;
 
-  public String header(CharSequence name) {
-    return headers.get(name);
+  /**
+   * Get the header value by name.
+   *
+   * @param name header name.
+   * @return the header value.
+   */
+  public Optional<String> header(CharSequence name) {
+    return Optional.ofNullable(headers.get(name));
   }
 
-  public String parameter(String name) {
-    if (params == null || params.size() == 0) {
-      return null;
+  /**
+   * Get the first value by the parameter name.
+   *
+   * @param name parameter name.
+   * @return the first value of the parameter.
+   */
+  public Optional<String> parameter(String name) {
+    if (params.containsKey(name) && params.get(name).size() > 0) {
+      return Optional.ofNullable(params.get(name).get(0));
     }
-    return params.get(name).get(0);
+    return Optional.empty();
   }
 
-  public List<String> parameters(String name) {
-    return params.get(name);
+  /**
+   * Get the parameter values by name. Include path parameters and query parameters.
+   *
+   * @param name parameter name.
+   * @return the parameter values.
+   */
+  public Optional<List<String>> parameters(String name) {
+    return Optional.ofNullable(params.get(name));
   }
 
 }
