@@ -5,7 +5,9 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,7 +39,8 @@ public class HttpRequest {
    * @return the header value.
    */
   public Optional<String> header(CharSequence name) {
-    return Optional.ofNullable(headers.get(name));
+    Objects.requireNonNull(name, "The header name shouldn't be null.");
+    return Optional.ofNullable(headers.get(name.toString().toLowerCase(Locale.ROOT)));
   }
 
   /**

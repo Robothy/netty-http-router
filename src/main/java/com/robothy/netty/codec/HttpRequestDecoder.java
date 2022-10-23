@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.ReferenceCountUtil;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 public class HttpRequestDecoder extends MessageToMessageDecoder<HttpObject> {
 
@@ -25,7 +26,7 @@ public class HttpRequestDecoder extends MessageToMessageDecoder<HttpObject> {
     if (msg instanceof HttpRequest) {
       HttpRequest httpRequest = (HttpRequest) msg;
       HashMap<CharSequence, String> headers = new HashMap<>();
-      httpRequest.headers().forEach(header -> headers.put(header.getKey(), header.getValue()));
+      httpRequest.headers().forEach(header -> headers.put(header.getKey().toLowerCase(Locale.ROOT), header.getValue()));
       this.body = Unpooled.compositeBuffer();
       QueryStringDecoder queryStringDecoder = new QueryStringDecoder(httpRequest.uri());
       this.builder = com.robothy.netty.http.HttpRequest.builder()
