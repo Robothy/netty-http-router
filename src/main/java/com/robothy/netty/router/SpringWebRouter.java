@@ -109,7 +109,8 @@ public class SpringWebRouter extends AbstractRouter {
     static Comparator<ParsedPattern> COMPARATOR = Comparator
         .comparing(ParsedPattern::headersMather, Comparator.nullsLast((a, b) -> 0))
         .thenComparing(ParsedPattern::paramsMather, Comparator.nullsLast((a, b) -> 0))
-        .thenComparing(ParsedPattern::pathPattern, PathPattern.SPECIFICITY_COMPARATOR);
+        .thenComparing(ParsedPattern::pathPattern, PathPattern.SPECIFICITY_COMPARATOR)
+        .thenComparing(ParsedPattern::hashCode); // Avoid override elements in TreeSet.
   }
 
 }
