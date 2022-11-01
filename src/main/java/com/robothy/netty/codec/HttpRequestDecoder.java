@@ -1,13 +1,19 @@
 package com.robothy.netty.codec;
 
+import com.robothy.netty.http.HttpResponse;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.ReferenceCountUtil;
@@ -29,6 +35,7 @@ public class HttpRequestDecoder extends MessageToMessageDecoder<HttpObject> {
       httpRequest.headers().forEach(header -> headers.put(header.getKey().toLowerCase(Locale.ROOT), header.getValue()));
       this.body = Unpooled.compositeBuffer();
       QueryStringDecoder queryStringDecoder = new QueryStringDecoder(httpRequest.uri());
+
       this.builder = com.robothy.netty.http.HttpRequest.builder()
           .method(httpRequest.method())
           .uri(httpRequest.uri())
@@ -37,6 +44,12 @@ public class HttpRequestDecoder extends MessageToMessageDecoder<HttpObject> {
           .body(body)
           .path(queryStringDecoder.path())
           .params(new HashMap<>(queryStringDecoder.parameters()));
+
+      String expect = httpRequest.headers().getAsString(HttpHeaderNames.EXPECT);
+      if (HttpHeaderValues.CONTINUE.contentEqualsIgnoreCase(expect)) {
+        ctx.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE));
+      }
+
     } else if (msg instanceof HttpContent) {
       HttpContent httpContent = (HttpContent) msg;
       ByteBuf content = httpContent.content();
