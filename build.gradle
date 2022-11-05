@@ -23,12 +23,10 @@ ext {
 
 dependencies {
     implementation "io.netty:netty-all:${nettyVersion}"
-    implementation "org.projectlombok:lombok:${lombokVersion}"
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     implementation "org.slf4j:slf4j-simple:${slf4jVersion}"
-    //implementation "org.springframework:spring-core:${sprintframeworkVersion}"
     implementation "org.springframework:spring-web:${sprintframeworkVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:${jupiterVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-params:${jupiterVersion}"
