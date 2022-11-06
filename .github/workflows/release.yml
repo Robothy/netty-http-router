@@ -42,6 +42,8 @@ jobs:
           mkdir -p ~/.gradle
           echo "GITHUB_TOKEN=${{secrets.PACKAGES_TOKEN}}" > ~/.gradle/gradle.properties
           echo "GITHUB_USERNAME=Robothy" >> ~/.gradle/gradle.properties
+          echo "singing.secretKey=${{ secrets.SING_SECRET_KEY }}" >> ~/.gradle/gradle.properties
+          echo "singing.password=${{ secrets.SING_PASSWORD }}" >> ~/.gradle/gradle.properties
           chmod +x gradlew
 
       - name: Release

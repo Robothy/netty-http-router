@@ -54,11 +54,13 @@ public interface Router {
    * directory. By default, the router loads static resources from `classpath:static`.
    *
    * <ul>
-   *   <li/> The {@code rootPath} must be a valid directory, the router will map the request uri
+   *   <li> The {@code rootPath} must be a valid directory, the router will map the request uri
    *   to relative path of files under the {@code rootPath} directory.
+   *   </li>
    *
-   *   <li/> If static resource paths conflict with routes registered via {@code route()},
+   *   <li> If static resource paths conflict with routes registered via {@code route()},
    *   the router will ignore static resources.
+   *   </li>
    * </ul>
    *
    *

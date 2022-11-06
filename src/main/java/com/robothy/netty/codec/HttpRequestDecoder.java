@@ -1,6 +1,5 @@
 package com.robothy.netty.codec;
 
-import com.robothy.netty.http.HttpResponse;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
