@@ -5,7 +5,7 @@ plugins {
     id "robothy-platform-release"
 }
 
-group 'com.robothy'
+group 'io.github.robothy'
 
 repositories {
     mavenLocal()
@@ -61,6 +61,31 @@ publishing {
             artifactId = project.name
             from components.java
             artifact sourcesJar
+
+            pom {
+                name = "Netty Http Router"
+                description 'A Netty HTTP router library.'
+
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'robothy'
+                        name = "Fuxiang Luo"
+                        email = "robothyluo@gmail.com"
+                    }
+                }
+
+                scm {
+                    url = "https://github.com/Robothy/netty-http-router"
+                }
+
+            }
         }
     }
 
@@ -78,12 +103,5 @@ publishing {
                 }
             }
         }
-    }
-}
-
-
-task showProjectVersion {
-    doLast {
-        println "Project version ${project.version}"
     }
 }
