@@ -1,8 +1,14 @@
+import io.franzbecker.gradle.lombok.task.DelombokTask
+
+import java.nio.file.Files
+
 plugins {
     id 'java'
     id 'maven-publish'
     id "com.robothy.cn-repo" version "1.8"
     id "robothy-platform-release"
+    id "signing"
+    id 'io.franzbecker.gradle-lombok' version '5.0.0'
 }
 
 group 'io.github.robothy'
@@ -42,15 +48,9 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(15)
     }
-}
 
-task sourcesJar(type: Jar, group: 'build') {
-    from sourceSets.main.allJava
-    archiveClassifier.set("sources")
-}
-
-artifacts {
-    archives sourcesJar
+    withSourcesJar()
+    withJavadocJar()
 }
 
 publishing {
@@ -60,7 +60,7 @@ publishing {
             groupId = group
             artifactId = project.name
             from components.java
-            artifact sourcesJar
+          //  artifact sourcesJar
 
             pom {
                 name = "Netty Http Router"
@@ -91,17 +91,41 @@ publishing {
 
     repositories {
         mavenLocal()
-
-        repositories {
-            mavenLocal()
-            maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/Robothy/netty-http-router")
-                credentials {
-                    username = project.findProperty("GITHUB_USERNAME") ?: System.getenv("GITHUB_USERNAME")
-                    password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN")
-                }
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/Robothy/netty-http-router")
+            credentials {
+                username = project.findProperty("GITHUB_USERNAME") ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN")
             }
         }
     }
+}
+
+signing {
+    def signingKey
+    if (findProperty("signingKeyRingFile") != null) {
+        signingKey = Files.readString(file(findProperty("signing.secretKeyRingFile")).toPath())
+    } else {
+        signingKey = findProperty("signing.secretKey")
+    }
+    def signingPassword = findProperty("signing.password")
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign publishing.publications.maven
+}
+
+
+task delombok(type: DelombokTask, dependsOn: compileJava) {
+    ext.outputDir = file("$buildDir/delombok")
+    outputs.dir(outputDir)
+    sourceSets.main.java.srcDirs.each {
+        inputs.dir(it)
+        args(it, "-d", outputDir)
+    }
+}
+
+javadoc {
+    dependsOn delombok
+    source = delombok.outputDir
+    //failOnError = false
 }
