@@ -109,7 +109,6 @@ signing {
     } else {
         signingKey = findProperty("signing.secretKey")
     }
-    println signingKey
     def signingPassword = findProperty("signing.password")
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign publishing.publications.maven
