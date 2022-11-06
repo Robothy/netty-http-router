@@ -107,8 +107,9 @@ signing {
     if (findProperty("signingKeyRingFile") != null) {
         signingKey = Files.readString(file(findProperty("signing.secretKeyRingFile")).toPath())
     } else {
-        signingKey = findProperty("singing.secretKey")
+        signingKey = findProperty("signing.secretKey")
     }
+    println signingKey
     def signingPassword = findProperty("signing.password")
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign publishing.publications.maven
