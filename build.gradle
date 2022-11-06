@@ -32,7 +32,6 @@ dependencies {
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
-    implementation "org.slf4j:slf4j-simple:${slf4jVersion}"
     implementation "org.springframework:spring-web:${sprintframeworkVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:${jupiterVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-params:${jupiterVersion}"
@@ -99,6 +98,16 @@ publishing {
                 password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN")
             }
         }
+
+        maven {
+            name = "MavenCentral"
+            url = uri('https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/')
+            credentials {
+                username = findProperty("OSSRH_USERNAME")
+                password = findProperty("OSSRH_PASSWORD")
+            }
+        }
+
     }
 }
 
