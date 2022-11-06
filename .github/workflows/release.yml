@@ -46,16 +46,24 @@ jobs:
 
       - name: Release
         if: ${{inputs.gradleLogLevel == 'None'}}
-        run: ./gradlew check release -Prelease=true
+        run: |
+          ./gradlew check releaseVersion
+          ./gradlew release
 
       - name: Release(Info)
         if: ${{inputs.gradleLogLevel == 'Info'}}
-        run: ./gradlew check release -Prelease=true --info
+        run: |
+          ./gradlew check releaseVersion
+          ./gradlew release
 
       - name: Release(Debug)
         if: ${{inputs.gradleLogLevel == 'Debug'}}
-        run: ./gradlew check release -Prelease=true --debug
+        run: |
+          ./gradlew check releaseVersion
+          ./gradlew release
 
       - name: Release(Stacktrace)
         if: ${{inputs.gradleLogLevel == 'Stacktrace'}}
-        run: ./gradlew check release -Prelease=true --stacktrace
+        run: |
+          ./gradlew check releaseVersion
+          ./gradlew release
