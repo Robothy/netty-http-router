@@ -44,6 +44,8 @@ jobs:
           echo "GITHUB_USERNAME=Robothy" >> ~/.gradle/gradle.properties
           echo "signing.secretKey=${{ secrets.SING_SECRET_KEY }}" >> ~/.gradle/gradle.properties
           echo "signing.password=${{ secrets.SING_PASSWORD }}" >> ~/.gradle/gradle.properties
+          echo "OSSRH_USERNAME=${{ secrets.OSSRH_USERNAME }}" >> ~/.gradle/gradle.properties
+          echo "OSSRH_PASSWORD=${{ secrets.OSSRH_PASSWORD }}" >> ~/.gradle/gradle.properties
           chmod +x gradlew
 
       - name: Release
