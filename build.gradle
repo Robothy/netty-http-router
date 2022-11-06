@@ -60,11 +60,10 @@ publishing {
             artifactId = project.name
             from components.java
           //  artifact sourcesJar
-
             pom {
                 name = "Netty Http Router"
-                description 'A Netty HTTP router library.'
-
+                description = 'A Netty HTTP router library.'
+                url = 'https://github.com/Robothy/netty-http-router'
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
@@ -81,7 +80,7 @@ publishing {
                 }
 
                 scm {
-                    url = "https://github.com/Robothy/netty-http-router"
+                    url = "https://github.com/Robothy/netty-http-router.git"
                 }
 
             }
