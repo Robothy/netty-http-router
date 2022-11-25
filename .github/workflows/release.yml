@@ -48,26 +48,21 @@ jobs:
           echo "OSSRH_PASSWORD=${{ secrets.OSSRH_PASSWORD }}" >> ~/.gradle/gradle.properties
           chmod +x gradlew
 
+      - name: Update version
+        run: ./gradlew releaseVersion
+
       - name: Release
         if: ${{inputs.gradleLogLevel == 'None'}}
-        run: |
-          ./gradlew check releaseVersion
-          ./gradlew release
+        run: ./gradlew check release
 
       - name: Release(Info)
         if: ${{inputs.gradleLogLevel == 'Info'}}
-        run: |
-          ./gradlew check releaseVersion
-          ./gradlew release
+        run: ./gradlew check release --info
 
       - name: Release(Debug)
         if: ${{inputs.gradleLogLevel == 'Debug'}}
-        run: |
-          ./gradlew check releaseVersion
-          ./gradlew release
+        run: ./gradlew check release --debug
 
       - name: Release(Stacktrace)
         if: ${{inputs.gradleLogLevel == 'Stacktrace'}}
-        run: |
-          ./gradlew check releaseVersion
-          ./gradlew release
+        run: ./gradlew check release --stacktrace

@@ -1,95 +1,28 @@
 # netty-http-router
 
 [![Build](https://github.com/Robothy/netty-http-router/actions/workflows/push.yml/badge.svg)](https://github.com/Robothy/netty-http-router/actions/workflows/push.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.robothy/netty-http-router?color=blueviolet&logo=apachemaven)](https://central.sonatype.dev/artifact/io.github.robothy/netty-http-router/1.13/versions)
 
 A library help to build web applications based on Netty.
 
 ## 1. Getting Started
 
-### 1.1 Config Maven repository
+### Dependency
 
-Before adding the dependency to your project, you should add the Maven repository firstly.
+This library is published to the Maven Central, you can add this dependency without extra configurations.
 
-#### Maven
-
-Add your Github token and repository configuration to `~/.m2/settings.xml` file.
-
-```xml
-<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
-
-  <activeProfiles>
-    <activeProfile>github-robothy</activeProfile>
-  </activeProfiles>
-
-  <profiles>
-    <profile>
-      <id>github</id>
-      <repositories>
-        <repository>
-          <id>central</id>
-          <url>https://repo1.maven.org/maven2</url>
-        </repository>
-        <repository>
-          <id>github-robothy</id>
-          <url>https://maven.pkg.github.com/robothy/netty-http-router</url>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-        </repository>
-      </repositories>
-    </profile>
-  </profiles>
-
-  <servers>
-    <server>
-      <id>github-robothy</id>
-      <username>USERNAME</username>
-      <password>TOKEN</password>
-    </server>
-  </servers>
-</settings>
-```
-
-#### Gradle
-
-Add your Github token and username to `~/.gradle/gradle.properties` to avoid committing your token to VCS. 
-Then configure repositories in `${projectDir}/build.gradle`.
-
-- _~/.gradle/gradle.properties_
-```properties
-GITHUB_USERNAME=You Github username
-GITHUB_TOKEN=You Github Token
-```
-- _~/build.gradle_
-```groovy
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven {
-        url 'https://maven.pkg.github.com/robothy/netty-http-router'
-        credentials {
-            username = "${GITHUB_USERNAME}"
-            password = "${GITHUB_TOKEN}"
-        }
-    }
-}
-```
-
-### 1.2 Add dependencies
-
-You can add the dependencies to your project after configure the repository.
 ```xml
 <dependency>
-    <groupId>com.robothy</groupId>
+    <groupId>io.github.robothy</groupId>
     <artifactId>netty-http-router</artifactId>
-    <version>1.6</version>
+    <version>1.13</version>
 </dependency>
 ```
 
 ### 1.3 Hello World
+
+The HelloWord example follows the standard steps of startup a Netty application. You only
+need to define a `Router` and an executor group that executes HTTP message handlers.
 
 ```java
 class HelloWorld {
@@ -120,7 +53,7 @@ class HelloWorld {
 
 ### 2.1 Request mapping
 
-netty-http-router mapping a request to a `HttpMessageHandler` according to the method, path, headers, and query parameters.
+netty-http-router map an HTTP request to a `HttpMessageHandler` according to the method, path, headers, and query parameters.
 
 #### Request path pattern
 
