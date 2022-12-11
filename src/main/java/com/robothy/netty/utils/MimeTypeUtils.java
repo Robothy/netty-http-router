@@ -38,7 +38,7 @@ public class MimeTypeUtils {
     map.put("gif", "image/gif");
     map.put("bmp", "image/bmp");
     map.put("zip", "application/zip");
-    extensionToMimeType = Map.copyOf(map);
+    extensionToMimeType = new HashMap<>(map);
   }
 
   public static String mimeTypeByFileExtension(String extension) {

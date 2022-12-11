@@ -132,7 +132,7 @@ final class DefaultRouter extends AbstractRouter {
     StringBuilder seg = new StringBuilder();
     for (int i = 1; i < path.length(); i++) {
       if (path.charAt(i) == '/') {
-        if (!seg.isEmpty()) {
+        if (!(seg.length() == 0)) {
           segments.add(seg.toString());
           seg = new StringBuilder();
         }
@@ -141,11 +141,11 @@ final class DefaultRouter extends AbstractRouter {
       }
     }
 
-    if (!seg.isEmpty()) {
+    if (!(seg.length() == 0)) {
       segments.add(seg.toString());
     }
 
-    return segments.toArray(String[]::new);
+    return segments.toArray(new String[0]);
   }
 
   /**
