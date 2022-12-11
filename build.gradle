@@ -30,7 +30,9 @@ ext {
 dependencies {
     implementation "io.netty:netty-all:${nettyVersion}"
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     implementation "org.springframework:spring-web:${sprintframeworkVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:${jupiterVersion}"
@@ -53,6 +55,8 @@ java {
     withSourcesJar()
     withJavadocJar()
 }
+
+javadoc.options.addStringOption('Xdoclint:none', '-quiet')
 
 publishing {
 
