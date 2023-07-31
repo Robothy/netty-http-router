@@ -5,7 +5,7 @@ import java.nio.file.Files
 plugins {
     id 'java'
     id 'maven-publish'
-    id "com.robothy.cn-repo" version "1.8"
+//    id "com.robothy.cn-repo" version "1.8"
     id "robothy-platform-release"
     id "signing"
     id 'io.franzbecker.gradle-lombok' version '5.0.0'
@@ -20,11 +20,11 @@ repositories {
 
 ext {
     lombokVersion = "1.18.24"
-    nettyVersion = '4.1.77.Final'
+    nettyVersion = '4.1.96.Final'
     jupiterVersion = "5.8.1"
     slf4jVersion = "1.7.36"
     mockitoVersion = "3.4.0"
-    sprintframeworkVersion = "5.3.23"
+    sprintframeworkVersion = "5.3.29"
 }
 
 dependencies {
