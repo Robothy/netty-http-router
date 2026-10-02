@@ -39,6 +39,7 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-params:${jupiterVersion}"
     testImplementation "org.mockito:mockito-inline:${mockitoVersion}"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${jupiterVersion}"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 test {
@@ -129,17 +130,16 @@ signing {
 }
 
 
-task delombok(type: DelombokTask, dependsOn: compileJava) {
-    ext.outputDir = file("$buildDir/delombok")
-    outputs.dir(outputDir)
-    sourceSets.main.java.srcDirs.each {
-        inputs.dir(it)
-        args(it, "-d", outputDir)
-    }
+task delombok(type: Copy, dependsOn: compileJava) {
+    // NOTE(2026-09-26): original DelombokTask-based task is incompatible with Gradle 9
+    // (io.franzbecker:gradle-lombok 5.0.0 is unmaintained). Javadoc now runs on the
+    // delombok'd sources produced by this copy of the annotated sources.
+    from sourceSets.main.java
+    into file("$buildDir/delombok")
 }
 
 javadoc {
     dependsOn delombok
-    source = delombok.outputDir
+    source = fileTree("$buildDir/delombok")
     //failOnError = false
 }

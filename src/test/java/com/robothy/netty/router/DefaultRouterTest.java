@@ -135,4 +135,71 @@ class DefaultRouterTest {
     assertEquals(subRuntimeExceptionHandler, router.findExceptionHandler(SubRuntimeException.class));
   }
 
+  @Test
+  void matchGreedyPathVariable() {
+    DefaultRouter router = new DefaultRouter();
+    HttpRequest.HttpRequestBuilder requestBuilder = HttpRequest.builder();
+
+    HttpRequestHandler tagsHandler = Mockito.mock(HttpRequestHandler.class);
+    router.route(Route.builder().method(HttpMethod.POST).path("/tags/{resourceArn+}").handler(tagsHandler).build());
+
+    // A greedy variable spans multiple segments.
+    HttpRequest multiSegment = requestBuilder
+        .method(HttpMethod.POST)
+        .uri("/tags/arn:aws:s3vectors:::vector-bucket/my-bucket")
+        .path("/tags/arn:aws:s3vectors:::vector-bucket/my-bucket")
+        .params(new HashMap<>())
+        .headers(new HashMap<>())
+        .build();
+    assertEquals(tagsHandler, router.match(multiSegment));
+    assertEquals("arn:aws:s3vectors:::vector-bucket/my-bucket",
+        multiSegment.getParams().get("resourceArn").get(0));
+
+    // A greedy variable preserves the raw (URL-encoded) remainder, including %2F.
+    HttpRequest encoded = requestBuilder
+        .method(HttpMethod.POST)
+        .uri("/tags/arn%3Aaws%3As3vectors%3A%3A%3Avector-bucket%2Fmy-bucket")
+        .path("/tags/arn:aws:s3vectors:::vector-bucket/my-bucket")
+        .params(new HashMap<>())
+        .headers(new HashMap<>())
+        .build();
+    assertEquals(tagsHandler, router.match(encoded));
+    assertEquals("arn%3Aaws%3As3vectors%3A%3A%3Avector-bucket%2Fmy-bucket",
+        encoded.getParams().get("resourceArn").get(0));
+  }
+
+  @Test
+  void greedyVariableMustBeLastSegment() {
+    DefaultRouter router = new DefaultRouter();
+    HttpRequestHandler handler = Mockito.mock(HttpRequestHandler.class);
+    assertThrows(IllegalArgumentException.class,
+        () -> router.route(HttpMethod.GET, "/a/{rest+}/b", handler));
+  }
+
+  @Test
+  void exactRouteWinsOverGreedyVariable() {
+    DefaultRouter router = new DefaultRouter();
+    HttpRequest.HttpRequestBuilder requestBuilder = HttpRequest.builder();
+
+    HttpRequestHandler greedyHandler = Mockito.mock(HttpRequestHandler.class);
+    HttpRequestHandler exactHandler = Mockito.mock(HttpRequestHandler.class);
+    router.route(Route.builder().method(HttpMethod.GET).path("/tags/{arn+}").handler(greedyHandler).build());
+    router.route(Route.builder().method(HttpMethod.GET).path("/tags/special").handler(exactHandler).build());
+
+    assertEquals(exactHandler, router.match(requestBuilder
+        .method(HttpMethod.GET)
+        .uri("/tags/special")
+        .path("/tags/special")
+        .params(new HashMap<>())
+        .headers(new HashMap<>())
+        .build()));
+    assertEquals(greedyHandler, router.match(requestBuilder
+        .method(HttpMethod.GET)
+        .uri("/tags/other/thing")
+        .path("/tags/other/thing")
+        .params(new HashMap<>())
+        .headers(new HashMap<>())
+        .build()));
+  }
+
 }

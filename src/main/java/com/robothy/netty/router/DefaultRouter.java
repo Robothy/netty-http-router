@@ -26,8 +26,13 @@ final class DefaultRouter extends AbstractRouter {
 
     TreeNode node = addNode(root, route.getMethod().name());
     String[] segments = splitPath(route.getPath());
-    for (String segment : segments) {
+    for (int i = 0; i < segments.length; i++) {
+      String segment = segments[i];
       node = addNode(node, segment);
+      if (isGreedyVariable(segment) && i != segments.length - 1) {
+        throw new IllegalArgumentException(
+            "The greedy path variable '" + segment + "' must be the last segment in '" + route.getPath() + "'.");
+      }
     }
     node.routes.add(route);
     return this;
@@ -35,9 +40,15 @@ final class DefaultRouter extends AbstractRouter {
 
   private TreeNode addNode(TreeNode parent, String path) {
     TreeNode child = new TreeNode();
-    if (path.startsWith("{") && path.endsWith("}")) {
+    if (isVariable(path)) {
       if (path.length() == 2) {
         throw new IllegalArgumentException("The path variable name cannot be empty.");
+      }
+      if (isGreedyVariable(path)) {
+        if (parent.greedyChild == null) {
+          parent.greedyChild = child;
+        }
+        return parent.greedyChild;
       }
       if (parent.likeChild == null) {
         parent.likeChild = child;
@@ -69,7 +80,16 @@ final class DefaultRouter extends AbstractRouter {
     }
 
     int idx = 0;
+    TreeNode greedyNode = null;
+    int greedyIdx = -1;
     for (; idx < segments.length; idx++) {
+      if (node.greedyChild != null) {
+        // A greedy variable consumes the remaining segments; remember the deepest
+        // position where it can apply and try exact/variable children first, so
+        // more specific routes win over the greedy one.
+        greedyNode = node.greedyChild;
+        greedyIdx = idx;
+      }
       TreeNode tmp = getNode(node, segments[idx]);
       if (tmp == null) {
         break;
@@ -77,17 +97,16 @@ final class DefaultRouter extends AbstractRouter {
       node = tmp;
     }
 
-    if (idx != segments.length) {
-      return null;
+    Route result = null;
+    if (idx == segments.length && !node.routes.isEmpty()) {
+      result = pickRoute(node, request);
     }
 
-    Route result = null;
-    for (Route route : node.routes) {
-      boolean headerMatched = (route.getHeaderMatcher() == null || route.getHeaderMatcher().apply(request.getHeaders()));
-      boolean paramMatched = (route.getParamMatcher() == null || route.getParamMatcher().apply(request.getParams()));
-      if (headerMatched && paramMatched) {
-        result = route;
-        break;
+    if (result == null && greedyNode != null && greedyNode.routes.isEmpty() == false) {
+      result = pickRoute(greedyNode, request);
+      if (result != null) {
+        idx = greedyIdx;
+        node = greedyNode;
       }
     }
 
@@ -95,31 +114,95 @@ final class DefaultRouter extends AbstractRouter {
       return null;
     }
 
-    request.getParams().putAll(parsePathParams(result.getPath(), request.getPath()));
+    request.getParams().putAll(parsePathParams(result.getPath(), request, idx));
     return result.getHandler();
   }
 
-  private Map<String, List<String>> parsePathParams(String pattern, String path) {
+  private Route pickRoute(TreeNode node, HttpRequest request) {
+    for (Route route : node.routes) {
+      boolean headerMatched = (route.getHeaderMatcher() == null || route.getHeaderMatcher().apply(request.getHeaders()));
+      boolean paramMatched = (route.getParamMatcher() == null || route.getParamMatcher().apply(request.getParams()));
+      if (headerMatched && paramMatched) {
+        return route;
+      }
+    }
+    return null;
+  }
+
+  private Map<String, List<String>> parsePathParams(String pattern, HttpRequest request, int consumedSegments) {
     Map<String, List<String>> result = new HashMap<>();
-    String[] pathSegments = splitPath(path);
     String[] patternSegments = splitPath(pattern);
-    if (pathSegments.length != patternSegments.length) {
-      throw new IllegalArgumentException("'" + path + "' should not match '" + pattern + "'.");
+    String[] pathSegments = splitPath(request.getPath());
+
+    // Simple (non-greedy) variables consume one decoded segment each; a trailing
+    // greedy variable consumes the whole remaining (raw) part of the URI.
+    int nonGreedyCount = patternSegments.length;
+    for (String patternSegment : patternSegments) {
+      if (isGreedyVariable(patternSegment)) {
+        nonGreedyCount--;
+      }
+    }
+    if (pathSegments.length < nonGreedyCount) {
+      throw new IllegalArgumentException("'" + request.getPath() + "' should not match '" + pattern + "'.");
     }
 
-    for (int i = 0; i < pathSegments.length; i++) {
-      if (patternSegments[i].startsWith("{") && patternSegments[i].endsWith("}")) {
-        String key = patternSegments[i].substring(1, patternSegments[i].length() - 1);
-        result.putIfAbsent(key, new ArrayList<>());
-        result.get(key).add(pathSegments[i]);
+    String remainder = rawRemainder(request, patternSegments, consumedSegments);
+    int pathIdx = 0;
+    for (String patternSegment : patternSegments) {
+      if (!isVariable(patternSegment)) {
+        pathIdx++;
+        continue;
       }
+      String key = variableName(patternSegment);
+      result.putIfAbsent(key, new ArrayList<>());
+      if (isGreedyVariable(patternSegment)) {
+        result.get(key).add(remainder);
+        break;
+      }
+      if (pathIdx >= pathSegments.length) {
+        break;
+      }
+      result.get(key).add(pathSegments[pathIdx]);
+      pathIdx++;
     }
 
     return result;
   }
 
+  /**
+   * Returns the remaining raw (still URL-encoded) part of the request URI after
+   * the fixed prefix of the pattern, without the query string. Encoded slashes
+   * ("%2F") therefore survive inside a greedy variable value.
+   */
+  private String rawRemainder(HttpRequest request, String[] patternSegments, int consumedSegments) {
+    String uri = request.getUri();
+    int queryIdx = uri.indexOf('?');
+    String rawPath = queryIdx >= 0 ? uri.substring(0, queryIdx) : uri;
+    String[] rawSegments = splitPath(rawPath);
+    StringBuilder sb = new StringBuilder();
+    for (int i = consumedSegments; i < rawSegments.length; i++) {
+      sb.append('/').append(rawSegments[i]);
+    }
+    String joined = sb.toString();
+    return joined.startsWith("/") ? joined.substring(1) : joined;
+  }
+
   TreeNode getNode(TreeNode parent, String segment) {
     return parent.exactChildren.getOrDefault(segment, parent.likeChild);
+  }
+
+  private boolean isVariable(String segment) {
+    return segment.startsWith("{") && segment.endsWith("}");
+  }
+
+  private boolean isGreedyVariable(String segment) {
+    return isVariable(segment) && segment.endsWith("+}")
+        && segment.length() > 3 && segment.charAt(segment.length() - 2) == '+';
+  }
+
+  private String variableName(String segment) {
+    String inner = segment.substring(1, segment.length() - 1);
+    return inner.endsWith("+") ? inner.substring(0, inner.length() - 1) : inner;
   }
 
   private String[] splitPath(String path) {
@@ -156,6 +239,8 @@ final class DefaultRouter extends AbstractRouter {
     private final Map<String, TreeNode> exactChildren = new HashMap<>();
 
     private TreeNode likeChild;
+
+    private TreeNode greedyChild;
 
     private final TreeSet<Route> routes = new TreeSet<>((r1, r2) -> {
       // r1 and r2 has the same method and path

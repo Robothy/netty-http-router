@@ -14,8 +14,8 @@ pluginManagement {
         maven {
             url = 'https://maven.pkg.github.com/robothy-platform/maven'
             credentials {
-                username = "${GITHUB_USERNAME}"
-                password = "${GITHUB_TOKEN}"
+                username = settings.hasProperty("GITHUB_USERNAME") ? settings.getProperty("GITHUB_USERNAME") : (System.getenv("GITHUB_USERNAME") ?: "")
+                password = settings.hasProperty("GITHUB_TOKEN") ? settings.getProperty("GITHUB_TOKEN") : (System.getenv("GITHUB_TOKEN") ?: "")
             }
         }
 
