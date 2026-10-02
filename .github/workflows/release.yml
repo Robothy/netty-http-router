@@ -1,36 +1,37 @@
 name: Release
+
 on:
   workflow_dispatch:
     inputs:
       gradleLogLevel:
         description: 'Gradle logging level.'
         required: false
-        default: None
+        default: Warn
         type: choice
         options:
-          - None
           - Info
+          - Warn
           - Debug
           - Stacktrace
 
 jobs:
   release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     env:
       GITHUB_USERNAME: Robothy
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Java 17 for Gradle
-        uses: actions/setup-java@v3
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Gradle Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -38,31 +39,18 @@ jobs:
 
       - name: Prepare parameters
         run: |
-          git log --pretty=format:"%H - %an, %aI : %s" -5
           mkdir -p ~/.gradle
-          echo "GITHUB_TOKEN=${{secrets.PACKAGES_TOKEN}}" > ~/.gradle/gradle.properties
-          echo "GITHUB_USERNAME=Robothy" >> ~/.gradle/gradle.properties
-          echo "signing.secretKey=${{ secrets.SING_SECRET_KEY }}" >> ~/.gradle/gradle.properties
-          echo "signing.password=${{ secrets.SING_PASSWORD }}" >> ~/.gradle/gradle.properties
-          echo "OSSRH_USERNAME=${{ secrets.OSSRH_USERNAME }}" >> ~/.gradle/gradle.properties
-          echo "OSSRH_PASSWORD=${{ secrets.OSSRH_PASSWORD }}" >> ~/.gradle/gradle.properties
-          chmod +x gradlew
+          cat > ~/.gradle/gradle.properties <<EOF
+          GITHUB_USERNAME=Robothy
+          GITHUB_TOKEN=${{secrets.PACKAGES_TOKEN}}
+          signing.secretKey=${{ secrets.SING_SECRET_KEY }}
+          signing.password=${{ secrets.SING_PASSWORD }}
+          MAVEN_CENTRAL_PORTAL_USERNAME=${{ secrets.OSSRH_USERNAME }}
+          MAVEN_CENTRAL_PORTAL_PASSWORD=${{ secrets.OSSRH_PASSWORD }}
+          EOF
 
-      - name: Update version
+      - name: Update release version
         run: ./gradlew releaseVersion
 
       - name: Release
-        if: ${{inputs.gradleLogLevel == 'None'}}
-        run: ./gradlew check release
-
-      - name: Release(Info)
-        if: ${{inputs.gradleLogLevel == 'Info'}}
-        run: ./gradlew check release --info
-
-      - name: Release(Debug)
-        if: ${{inputs.gradleLogLevel == 'Debug'}}
-        run: ./gradlew check release --debug
-
-      - name: Release(Stacktrace)
-        if: ${{inputs.gradleLogLevel == 'Stacktrace'}}
-        run: ./gradlew check release --stacktrace
+        run: ./gradlew check release uploadMavenCentralPortal nextSnapshotVersion --${{inputs.gradleLogLevel}}

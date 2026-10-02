@@ -9,6 +9,7 @@ plugins {
     id "robothy-platform-release"
     id "signing"
     id 'io.franzbecker.gradle-lombok' version '5.0.0'
+    id 'org.danilopianini.publish-on-central' version '9.2.8'
 }
 
 group 'io.github.robothy'
@@ -105,15 +106,6 @@ publishing {
             }
         }
 
-        maven {
-            name = "MavenCentral"
-            url = uri('https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/')
-            credentials {
-                username = findProperty("OSSRH_USERNAME")
-                password = findProperty("OSSRH_PASSWORD")
-            }
-        }
-
     }
 }
 
@@ -130,16 +122,101 @@ signing {
 }
 
 
-task delombok(type: Copy, dependsOn: compileJava) {
-    // NOTE(2026-09-26): original DelombokTask-based task is incompatible with Gradle 9
-    // (io.franzbecker:gradle-lombok 5.0.0 is unmaintained). Javadoc now runs on the
-    // delombok'd sources produced by this copy of the annotated sources.
-    from sourceSets.main.java
-    into file("$buildDir/delombok")
+// NOTE(2026-09-26): the original task used DelombokTask from
+// io.franzbecker:gradle-lombok 5.0.0, which is unmaintained and incompatible with
+// Gradle 9. A plain JavaExec invocation of lombok's own launcher does the same job.
+task delombok(type: JavaExec, dependsOn: compileJava) {
+    classpath = configurations.compileClasspath.filter { it.name.contains('lombok') }
+    mainClass = 'lombok.launch.Main'
+    doFirst {
+        delete file("$buildDir/delombok")
+    }
+    args(
+        'delombok',
+        sourceSets.main.java.srcDirs.first(),
+        '-d', file("$buildDir/delombok"),
+    )
 }
 
 javadoc {
     dependsOn delombok
     source = fileTree("$buildDir/delombok")
     //failOnError = false
+}
+
+
+// ---- Maven Central Portal publishing (2026-10) ----
+// The legacy OSSRH (s01.oss.sonatype.org) publishing is retired; Maven Central
+// now ingests artifacts through the Central Portal API. The
+// publish-on-central plugin produces the Portal bundle zip; uploadMavenCentralPortal
+// POSTs it to https://central.sonatype.com (same approach as local-s3's buildSrc).
+// Plugin 'org.danilopianini.publish-on-central' is declared in the plugins block above.
+publishOnCentral {
+    repoOwner.set('Robothy')
+    projectLongName.set('NettyHttpRouter')
+    projectDescription.set('A Netty HTTP router library.')
+    projectUrl.set('https://github.com/Robothy/netty-http-router')
+    scmConnection.set('scm:git:https://github.com/Robothy/netty-http-router')
+    licenseName.set('The Apache License, Version 2.0')
+    licenseUrl.set('http://www.apache.org/licenses/LICENSE-2.0')
+}
+
+tasks.register('uploadMavenCentralPortal') {
+    description = 'Uploads the Maven Central Portal zip bundle to central.sonatype.com.'
+    group = 'publishing'
+    dependsOn tasks.named('zipMavenCentralPortalPublication')
+
+    def uploadTimeoutMinutes = (project.findProperty("MAVEN_CENTRAL_PORTAL_UPLOAD_TIMEOUT_MINUTES") ?: "15") as int
+
+    doLast {
+        def zipTask = tasks.named('zipMavenCentralPortalPublication').get()
+        def zipFile = zipTask.archiveFile.get().asFile
+        if (!zipFile.exists()) {
+            throw new GradleException("Zip file not found: ${zipFile.absolutePath}")
+        }
+
+        def username = project.findProperty("MAVEN_CENTRAL_PORTAL_USERNAME") ?: System.getenv("MAVEN_CENTRAL_PORTAL_USERNAME")
+        def password = project.findProperty("MAVEN_CENTRAL_PORTAL_PASSWORD") ?: System.getenv("MAVEN_CENTRAL_PORTAL_PASSWORD")
+        if (!username || !password) {
+            throw new GradleException("MAVEN_CENTRAL_PORTAL_USERNAME and MAVEN_CENTRAL_PORTAL_PASSWORD must be set")
+        }
+        def token = Base64.getEncoder().encodeToString("${username}:${password}".getBytes("UTF-8"))
+        def publishingType = project.findProperty("MAVEN_CENTRAL_PORTAL_PUBLISHING_TYPE") ?: "USER_MANAGED"
+
+        def boundary = UUID.randomUUID().toString()
+        def CRLF = "\r\n"
+        def baos = new ByteArrayOutputStream()
+        baos.write("--${boundary}${CRLF}".getBytes("UTF-8"))
+        baos.write("Content-Disposition: form-data; name=\"bundle\"; filename=\"${zipFile.name}\"${CRLF}".getBytes("UTF-8"))
+        baos.write("Content-Type: application/octet-stream${CRLF}".getBytes("UTF-8"))
+        baos.write(CRLF.getBytes("UTF-8"))
+        baos.write(zipFile.bytes)
+        baos.write("${CRLF}--${boundary}--${CRLF}".getBytes("UTF-8"))
+
+        def encodedName = URLEncoder.encode(zipFile.name, "UTF-8")
+        def uploadUrl = "https://central.sonatype.com/api/v1/publisher/upload?name=${encodedName}&publishingType=${publishingType}"
+
+        logger.lifecycle("Uploading ${zipFile.name} (${zipFile.length()} bytes) to Maven Central Portal...")
+        logger.lifecycle("Publishing type: ${publishingType}, timeout: ${uploadTimeoutMinutes} minutes")
+
+        def client = java.net.http.HttpClient.newBuilder()
+            .connectTimeout(java.time.Duration.ofMinutes(5))
+            .build()
+
+        def request = java.net.http.HttpRequest.newBuilder()
+            .uri(URI.create(uploadUrl))
+            .header("Authorization", "Bearer ${token}")
+            .header("Content-Type", "multipart/form-data; boundary=${boundary}")
+            .timeout(java.time.Duration.ofMinutes(uploadTimeoutMinutes))
+            .POST(java.net.http.HttpRequest.BodyPublishers.ofByteArray(baos.toByteArray()))
+            .build()
+
+        def response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+
+        if (response.statusCode() == 201) {
+            logger.lifecycle("Upload successful! Deployment ID: ${response.body()}")
+        } else {
+            throw new GradleException("Upload to Maven Central Portal failed with status ${response.statusCode()}: ${response.body()}")
+        }
+    }
 }
