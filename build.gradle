@@ -21,7 +21,7 @@ repositories {
 
 ext {
     lombokVersion = "1.18.48"
-    nettyVersion = '4.1.96.Final'
+    nettyVersion = '4.2.18.Final'
     jupiterVersion = "5.8.1"
     slf4jVersion = "1.7.36"
     mockitoVersion = "3.4.0"
