@@ -20,7 +20,7 @@ repositories {
 }
 
 ext {
-    lombokVersion = "1.18.24"
+    lombokVersion = "1.18.48"
     nettyVersion = '4.1.96.Final'
     jupiterVersion = "5.8.1"
     slf4jVersion = "1.7.36"
