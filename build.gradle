@@ -144,6 +144,9 @@ task delombok(type: JavaExec, dependsOn: compileJava) {
 javadoc {
     dependsOn delombok
     source = fileTree("$buildDir/delombok")
+    // Aggregate poms like netty-all 4.2 resolve to an empty shell jar on the
+    // default javadoc classpath variant; reuse the compile classpath explicitly.
+    classpath = sourceSets.main.compileClasspath
     //failOnError = false
 }
 
