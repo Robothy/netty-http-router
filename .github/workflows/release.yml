@@ -44,7 +44,7 @@ jobs:
           GITHUB_USERNAME=Robothy
           GITHUB_TOKEN=${{secrets.PACKAGES_TOKEN}}
           signing.secretKey=${{ secrets.SING_SECRET_KEY }}
-          signing.password=${{ secrets.SING_PASSWORD }}
+          signing.password=${{ secrets.SIGN_PASSWORD }}
           MAVEN_CENTRAL_PORTAL_USERNAME=${{ secrets.OSSRH_USERNAME }}
           MAVEN_CENTRAL_PORTAL_PASSWORD=${{ secrets.OSSRH_PASSWORD }}
           EOF
@@ -53,4 +53,6 @@ jobs:
         run: ./gradlew releaseVersion
 
       - name: Release
-        run: ./gradlew check release uploadMavenCentralPortal nextSnapshotVersion --${{inputs.gradleLogLevel}}
+        run: |
+          LEVEL=$(echo "${{inputs.gradleLogLevel}}" | tr '[:upper:]' '[:lower:]')
+          ./gradlew check release uploadMavenCentralPortal nextSnapshotVersion --$LEVEL
