@@ -63,11 +63,9 @@ javadoc.options.addStringOption('Xdoclint:none', '-quiet')
 publishing {
 
     publications {
-        maven(MavenPublication) {
-            groupId = group
-            artifactId = project.name
-            from components.java
-          //  artifact sourcesJar
+        // publish-on-central registers the 'OSSRH' publication itself
+        // (from components.java). Just add POM metadata to whatever exists.
+        withType(MavenPublication) {
             pom {
                 name = "Netty Http Router"
                 description = 'A Netty HTTP router library.'
@@ -118,7 +116,7 @@ signing {
     }
     def signingPassword = findProperty("signing.password")
     useInMemoryPgpKeys(signingKey, signingPassword)
-    sign publishing.publications.maven
+    sign publishing.publications.OSSRH
 }
 
 
