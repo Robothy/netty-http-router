@@ -46,6 +46,7 @@ jobs:
           signing.password=${{ secrets.SIGN_PASSWORD }}
           MAVEN_CENTRAL_PORTAL_USERNAME=${{ secrets.OSSRH_USERNAME }}
           MAVEN_CENTRAL_PORTAL_PASSWORD=${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_CENTRAL_PORTAL_PUBLISHING_TYPE=AUTOMATIC
           EOF
 
       - name: Update release version
