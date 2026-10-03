@@ -22,7 +22,7 @@ repositories {
 ext {
     lombokVersion = "1.18.48"
     nettyVersion = '4.2.18.Final'
-    jupiterVersion = "5.8.1"
+    jupiterVersion = "6.1.3"
     slf4jVersion = "2.0.20"
     mockitoVersion = "3.4.0"
     sprintframeworkVersion = "5.3.29"
