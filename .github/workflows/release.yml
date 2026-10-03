@@ -42,7 +42,6 @@ jobs:
           mkdir -p ~/.gradle
           cat > ~/.gradle/gradle.properties <<EOF
           GITHUB_USERNAME=Robothy
-          GITHUB_TOKEN=${{secrets.PACKAGES_TOKEN}}
           signing.secretKey=${{ secrets.SING_SECRET_KEY }}
           signing.password=${{ secrets.SIGN_PASSWORD }}
           MAVEN_CENTRAL_PORTAL_USERNAME=${{ secrets.OSSRH_USERNAME }}

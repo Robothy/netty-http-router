@@ -95,12 +95,17 @@ publishing {
 
     repositories {
         mavenLocal()
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Robothy/netty-http-router")
-            credentials {
-                username = project.findProperty("GITHUB_USERNAME") ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN")
+        // Only publish to GitHub Packages when a token is provided (CI builds).
+        // The release workflow skips it: GitHub Packages rejects re-upload of an
+        // existing version (409), which would fail the release on retries.
+        if (project.findProperty("GITHUB_TOKEN") != null || System.getenv("GITHUB_TOKEN") != null) {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/Robothy/netty-http-router")
+                credentials {
+                    username = project.findProperty("GITHUB_USERNAME") ?: System.getenv("GITHUB_USERNAME")
+                    password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN")
+                }
             }
         }
 
