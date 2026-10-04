@@ -24,7 +24,7 @@ ext {
     nettyVersion = '4.2.18.Final'
     jupiterVersion = "5.8.1"
     slf4jVersion = "2.0.20"
-    mockitoVersion = "3.4.0"
+    mockitoVersion = "5.24.0"
     sprintframeworkVersion = "5.3.29"
 }
 
@@ -38,7 +38,7 @@ dependencies {
     implementation "org.springframework:spring-web:${sprintframeworkVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:${jupiterVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter-params:${jupiterVersion}"
-    testImplementation "org.mockito:mockito-inline:${mockitoVersion}"
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${jupiterVersion}"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
@@ -52,8 +52,8 @@ java {
 //        languageVersion = JavaLanguageVersion.of(11)
 //    }
 
-    sourceCompatibility(8)
-    targetCompatibility(8)
+    sourceCompatibility(17)
+    targetCompatibility(17)
     withSourcesJar()
     withJavadocJar()
 }
@@ -146,7 +146,7 @@ javadoc {
     source = fileTree("$buildDir/delombok")
     // Aggregate poms like netty-all 4.2 resolve to an empty shell jar on the
     // default javadoc classpath variant; reuse the compile classpath explicitly.
-    classpath = sourceSets.main.compileClasspath
+    classpath = configurations.compileClasspath
     //failOnError = false
 }
 
