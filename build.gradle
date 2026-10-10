@@ -9,7 +9,7 @@ plugins {
     id "robothy-platform-release"
     id "signing"
     id 'io.franzbecker.gradle-lombok' version '5.0.0'
-    id 'org.danilopianini.publish-on-central' version '9.2.8'
+    id 'org.danilopianini.publish-on-central' version '9.2.12'
 }
 
 group 'io.github.robothy'
